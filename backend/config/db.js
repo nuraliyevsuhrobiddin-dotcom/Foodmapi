@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
+  // Agar allaqachon ulangan bo'lsa, qayta ulanma
   if (mongoose.connection.readyState >= 1) return;
 
   try {
@@ -8,7 +9,7 @@ const connectDB = async () => {
     console.log(`MongoDB Ulangan: ${conn.connection.host}`);
   } catch (error) {
     console.error(`DB Ulanish xatosi: ${error.message}`);
-    // Serverlessda process.exit(1) ishlatilmaydi
+    // Serverless muhitda process.exit(1) qilish mumkin emas
   }
 };
 
