@@ -23,7 +23,7 @@ const app = express();
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 100, // Limit each IP to 100 requests per windowMs
+  max: 100,
   message: 'Juda ko\'p so\'rov yuborildi, iltimos 10 daqiqadan so\'ng qayta urinib ko\'ring',
 });
 
@@ -32,11 +32,11 @@ app.use(express.json());
 app.use(cors());
 app.use(limiter);
 
-// Static folder for file uploads
+// Static folder for file uploads (Note: Vercel storage is ephemeral)
 const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Mount routers
+// Mount routers - Vercel routes everything to /api internally
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/restaurants', restaurantRoutes);
@@ -45,7 +45,7 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders', orderRoutes);
 
 // Root route
-app.get('/', (req, res) => {
+app.get('/api', (req, res) => {
   res.send('FoodMap API is running...');
 });
 
@@ -54,7 +54,8 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV !== 'production') {
+// Only listen if not running as a serverless function
+if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`Server is running in ${process.env.NODE_ENV} mode on port ${PORT}`);
   });
