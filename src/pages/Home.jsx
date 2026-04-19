@@ -164,7 +164,7 @@ export default function Home() {
     <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
       
       {/* List Panel (Sidebar on desktop, Bottom/Scroll on mobile) */}
-      <div className={`w-full md:w-[420px] lg:w-[480px] bg-background flex flex-col z-20 h-[calc(100vh-72px)] shrink-0 border-r border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden ${mobileView === 'list' ? 'block' : 'hidden md:flex'}`}>
+      <div className={`w-full md:w-[420px] lg:w-[480px] bg-background flex flex-col z-20 h-[calc(100vh-72px)] shrink-0 border-r border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
         
         {/* Search Bar */}
         <div className="p-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shrink-0">
