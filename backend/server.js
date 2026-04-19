@@ -52,8 +52,8 @@ app.get('/api', (req, res) => {
 // Custom error handling
 app.use(errorHandler);
 
-// Lokal ishga tushirish (Vite orqali Vercel deployda bu qism ishlamaydi)
-if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+// Lokal va render deploy uchun (Vercel serverlessdan tashqari)
+if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
