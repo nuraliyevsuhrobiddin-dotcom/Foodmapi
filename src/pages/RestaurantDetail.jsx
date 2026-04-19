@@ -6,6 +6,7 @@ import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 // Marker definitions
 const customMarkerIcon = new L.Icon({
@@ -17,7 +18,7 @@ const customMarkerIcon = new L.Icon({
 });
 
 // Routing Component
-function RoutingMachine({ start, end }) {
+function RoutingMachine({ start, end, onRouteFound }) {
   const map = useMap();
 
   useEffect(() => {
@@ -51,6 +52,13 @@ function RoutingMachine({ start, end }) {
         lineOptions: {
           styles: [{ color: '#f97316', weight: 5, opacity: 0.8 }]
         }
+      }).on('routesfound', function(e) {
+        if (e.routes && e.routes[0] && onRouteFound) {
+          const route = e.routes[0];
+          const distMap = (route.summary.totalDistance / 1000).toFixed(1);
+          const timeMap = Math.round(route.summary.totalTime / 60);
+          onRouteFound({ distance: distMap, time: timeMap });
+        }
       }).addTo(map);
     };
 
@@ -72,6 +80,7 @@ const API_URL = import.meta.env.VITE_API_URL || '';
 export default function RestaurantDetail() {
   const { id } = useParams();
   const { user, token, toggleFavorite, setIsAuthModalOpen } = useAuth();
+  const { addToCart } = useCart();
   
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,6 +89,7 @@ export default function RestaurantDetail() {
   const [showMap, setShowMap] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [routeInfo, setRouteInfo] = useState(null);
 
   // Review states
   const [reviews, setReviews] = useState([]);
@@ -228,7 +238,7 @@ export default function RestaurantDetail() {
                   <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
                   <Marker position={resCoords} icon={customMarkerIcon} />
                   {userLocation && <Marker position={userLocation} icon={customMarkerIcon} />}
-                  {userLocation && <RoutingMachine start={userLocation} end={resCoords} />}
+                  {userLocation && <RoutingMachine start={userLocation} end={resCoords} onRouteFound={setRouteInfo} />}
                 </MapContainer>
               )}
               {/* Add shadow overlay for map readability of text */}
@@ -246,6 +256,16 @@ export default function RestaurantDetail() {
             <ArrowLeft size={20} />
           </Link>
           <div className="flex items-center gap-3">
+            {routeInfo && showMap && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="hidden sm:flex items-center gap-2 bg-green-500/90 backdrop-blur-md px-4 py-2 rounded-full text-white font-medium shadow-lg"
+              >
+                <Navigation size={16} />
+                <span>{routeInfo.distance} km • {routeInfo.time} daqiqa</span>
+              </motion.div>
+            )}
             <button 
               onClick={() => setShowMap(!showMap)}
               className="h-10 px-4 rounded-full bg-slate-900/40 backdrop-blur-md flex items-center gap-2 text-white hover:bg-slate-900/60 transition-colors font-medium text-sm"
@@ -316,9 +336,13 @@ export default function RestaurantDetail() {
               </div>
             </div>
             
-            <button onClick={handleShowRoute} className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3.5 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm">
-              <Navigation size={18} />
-              {showMap && userLocation ? "Qayta hisoblash" : "Menga yo'lni chizib ko'rsat!"}
+            <button onClick={handleShowRoute} className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3.5 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm relative overflow-hidden group">
+              <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:scale-105 transition-transform"></span>
+              {routeInfo && showMap && userLocation ? (
+                 <span className="flex items-center gap-2"><Navigation size={18} /> {routeInfo.distance} km masofa ({routeInfo.time} min)</span>
+              ) : (
+                 <span className="flex items-center gap-2"><Navigation size={18} /> Menga yo'lni chizib ko'rsat!</span>
+              )}
             </button>
           </div>
 
@@ -350,7 +374,7 @@ export default function RestaurantDetail() {
                         <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.name}</h4>
                         <p className="text-primary font-medium text-sm mt-1">{item.price} so'm</p>
                       </div>
-                      <button className="self-start text-xs font-semibold px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                      <button onClick={() => addToCart(item)} className="self-start text-xs font-semibold px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
                         Qo'shish
                       </button>
                     </div>

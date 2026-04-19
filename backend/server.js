@@ -1,6 +1,8 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 const { errorHandler } = require('./middleware/errorMiddleware');
@@ -20,6 +22,23 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 connectDB();
 
 const app = express();
+
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
+  }
+});
+
+app.set('io', io);
+
+io.on('connection', (socket) => {
+  console.log('Yangi foydalanuvchi ulandi:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('Foydalanuvchi uzildi:', socket.id);
+  });
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -55,10 +74,10 @@ app.use(errorHandler);
 // Lokal va render deploy uchun (Vercel serverlessdan tashqari)
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 }
 
 // VERSEL UCHUN EKSPORT
-module.exports = app;
+module.exports = server;

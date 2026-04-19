@@ -3,10 +3,12 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 // Mock data if needed
 // import { MOCK_RESTAURANTS } from '../data/mockData';
+import { Search, MapPin, List, Map as MapIcon, Mic } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import FilterPanel from '../components/FilterPanel';
 import RestaurantCard from '../components/RestaurantCard';
-import { Search, MapPin } from 'lucide-react';
 import L from 'leaflet';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
@@ -38,6 +40,7 @@ export default function Home() {
   const [userLocation, setUserLocation] = useState(null);
   const [sortBy, setSortBy] = useState(''); // 'popular' yoki 'nearest'
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
+  const [mobileView, setMobileView] = useState('list'); // 'list' yoki 'map'
   const { user } = useAuth();
 
   // Category toggle handler
@@ -73,6 +76,34 @@ export default function Home() {
     } else {
       alert("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi.");
     }
+  };
+
+  // Voice search logic
+  const startVoiceSearch = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      return toast.error("Kechirasiz, brauzeringizda ovozli qidiruv ishlamaydi.");
+    }
+    
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'uz-UZ';
+    recognition.interimResults = false;
+    
+    recognition.onstart = () => {
+      toast('Gapiring, eshitaman...', { icon: '🎙️', duration: 3000 });
+    };
+
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setSearchQuery(transcript);
+      toast.success(`Qidirilmoqda: "${transcript}"`);
+    };
+
+    recognition.onerror = (event) => {
+      toast.error("Ovoz tanib olinmadi, qayta urinib ko'ring.");
+    };
+
+    recognition.start();
   };
 
   // Fetch restaurants from backend
@@ -125,7 +156,7 @@ export default function Home() {
     <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
       
       {/* List Panel (Sidebar on desktop, Bottom/Scroll on mobile) */}
-      <div className="w-full md:w-[420px] lg:w-[480px] bg-background flex flex-col z-20 h-[50vh] md:h-[calc(100vh-72px)] shrink-0 border-r border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+      <div className={`w-full md:w-[420px] lg:w-[480px] bg-background flex flex-col z-20 h-[calc(100vh-72px)] shrink-0 border-r border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden ${mobileView === 'list' ? 'block' : 'hidden md:flex'}`}>
         
         {/* Search Bar */}
         <div className="p-4 bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -136,8 +167,15 @@ export default function Home() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Qayerda ovqatlanamiz? (Qashqadaryo)" 
-              className="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-800 border-transparent focus:border-primary focus:bg-white dark:focus:bg-slate-900 rounded-xl outline-none transition-all duration-300 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
+              className="w-full pl-10 pr-12 py-3 bg-slate-100 dark:bg-slate-800 border-transparent focus:border-primary focus:bg-white dark:focus:bg-slate-900 rounded-xl outline-none transition-all duration-300 text-slate-800 dark:text-slate-100 placeholder:text-slate-400 shadow-sm"
             />
+            <button 
+              onClick={startVoiceSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors hover:scale-110"
+              title="Ovoz orqali qidirish"
+            >
+              <Mic size={20} />
+            </button>
           </div>
         </div>
 
@@ -148,18 +186,32 @@ export default function Home() {
           <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
             Topilgan joylar: {restaurants.length}
           </p>
-          {restaurants.map(restaurant => (
-            <div 
-              key={restaurant._id || restaurant.id}
-              onClick={() => {
-                setMapCenter([restaurant.location.coordinates[1], restaurant.location.coordinates[0]]);
-                setActiveRestaurantId(restaurant._id || restaurant.id);
-              }}
-              className="cursor-pointer"
-            >
-              <RestaurantCard restaurant={restaurant} />
-            </div>
-          ))}
+          <motion.div
+            initial="hidden"
+            animate="visible"
+            variants={{
+              hidden: { opacity: 0 },
+              visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
+            }}
+            className="space-y-4"
+          >
+            {restaurants.map(restaurant => (
+              <motion.div 
+                variants={{
+                  hidden: { opacity: 0, y: 20 },
+                  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+                }}
+                key={restaurant._id || restaurant.id}
+                onClick={() => {
+                  setMapCenter([restaurant.location.coordinates[1], restaurant.location.coordinates[0]]);
+                  setActiveRestaurantId(restaurant._id || restaurant.id);
+                }}
+                className="cursor-pointer"
+              >
+                <RestaurantCard restaurant={restaurant} />
+              </motion.div>
+            ))}
+          </motion.div>
 
           {/* Pagination Buttons */}
           {pagination.pages > 1 && (
@@ -187,7 +239,7 @@ export default function Home() {
       </div>
 
       {/* Map Area */}
-      <div className="flex-1 h-[50vh] md:h-[calc(100vh-72px)] relative z-10 w-full shrink-0">
+      <div className={`flex-1 h-[calc(100vh-72px)] relative z-10 w-full shrink-0 ${mobileView === 'map' ? 'block' : 'hidden md:block'}`}>
         <MapContainer 
           center={mapCenter} 
           zoom={13} 
@@ -245,6 +297,14 @@ export default function Home() {
         {/* Shadow overlay gradient on desktop for map depth */}
         <div className="hidden md:block absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900/10 to-transparent pointer-events-none z-[400]" />
       </div>
+
+      {/* Mobile View Toggle */}
+      <button 
+        onClick={() => setMobileView(mobileView === 'list' ? 'map' : 'list')}
+        className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] px-6 py-3.5 bg-primary text-white rounded-full font-bold shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform"
+      >
+        {mobileView === 'list' ? <><MapIcon size={18}/> Xarita</> : <><List size={18}/> Ro'yxat</>}
+      </button>
       
     </div>
   );

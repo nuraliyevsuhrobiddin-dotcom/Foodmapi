@@ -48,6 +48,15 @@ const addReview = async (req, res, next) => {
 
     const review = await Review.create(req.body);
 
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('new_review', {
+        restaurantName: restaurant.name,
+        username: req.user.username,
+        rating: review.rating
+      });
+    }
+
     res.status(201).json({
       success: true,
       data: review,
