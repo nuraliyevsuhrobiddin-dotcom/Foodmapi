@@ -13,7 +13,8 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 
 // Load env vars
-dotenv.config();
+const path = require('path');
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 // Connect to database
 connectDB();
@@ -33,7 +34,6 @@ app.use(cors());
 app.use(limiter);
 
 // Statik papka
-const path = require('path');
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Mount API routers
