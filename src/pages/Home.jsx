@@ -24,6 +24,14 @@ const customMarkerIcon = new L.Icon({
   shadowSize: [41, 41]
 });
 
+// A unique animated marker for the actual user
+const userPinIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/14090/14090151.png', // Blue location pin/person icon
+  iconSize: [36, 36],
+  iconAnchor: [18, 36],
+  popupAnchor: [0, -32],
+});
+
 // Component to recenter map when clicking on list item
 function ChangeView({ center, zoom }) {
   const map = useMap();
@@ -253,7 +261,14 @@ export default function Home() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
-          
+
+          {/* Render User Location Marker */}
+          {userLocation && (
+            <Marker position={userLocation} icon={userPinIcon}>
+              <Popup className="custom-popup font-bold">Men shu yerdaman!</Popup>
+            </Marker>
+          )}
+
           {restaurants.map((restaurant) => (
             <Marker 
               key={restaurant._id || restaurant.id} 
