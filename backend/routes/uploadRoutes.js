@@ -4,6 +4,7 @@ const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 // Cloudinary konfiguratsiyasi (.env dan oladi)
 cloudinary.config({
@@ -26,7 +27,7 @@ const upload = multer({ storage: storage });
 // @route   POST /api/upload
 // @desc    Rasm yuklash
 // @access  Private/Admin
-router.post('/', upload.array('image', 5), (req, res) => {
+router.post('/', protect, admin, upload.array('image', 5), (req, res) => {
   if (req.files && req.files.length > 0) {
     // Disk o'rniga cloudinary o'zi URL qaytaradi req.files[].path ichida
     const urls = req.files.map(file => file.path);

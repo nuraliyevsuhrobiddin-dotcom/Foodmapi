@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet-routing-machine';
 import { useAuth } from '../context/AuthContext';
 
 // Marker definitions
@@ -24,30 +23,44 @@ function RoutingMachine({ start, end }) {
   useEffect(() => {
     if (!map || !start || !end) return;
 
-    // Remove old routing controls if any
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Routing.Control) {
-        map.removeLayer(layer);
-      }
-    });
+    let routingControl;
+    let isMounted = true;
 
-    const routingControl = L.Routing.control({
-      waypoints: [
-        L.latLng(start[0], start[1]),
-        L.latLng(end[0], end[1])
-      ],
-      routeWhileDragging: false,
-      addWaypoints: false,
-      fitSelectedRoutes: true,
-      show: false, // hide textual instructions
-      createMarker: function() { return null; },
-      lineOptions: {
-        styles: [{ color: '#f97316', weight: 5, opacity: 0.8 }]
-      }
-    }).addTo(map);
+    const loadRouting = async () => {
+      await import('leaflet-routing-machine');
+
+      if (!isMounted) return;
+
+      // Remove old routing controls if any
+      map.eachLayer((layer) => {
+        if (layer instanceof L.Routing.Control) {
+          map.removeLayer(layer);
+        }
+      });
+
+      routingControl = L.Routing.control({
+        waypoints: [
+          L.latLng(start[0], start[1]),
+          L.latLng(end[0], end[1])
+        ],
+        routeWhileDragging: false,
+        addWaypoints: false,
+        fitSelectedRoutes: true,
+        show: false,
+        createMarker: function() { return null; },
+        lineOptions: {
+          styles: [{ color: '#f97316', weight: 5, opacity: 0.8 }]
+        }
+      }).addTo(map);
+    };
+
+    loadRouting();
 
     return () => {
-      try { map.removeControl(routingControl); } catch(e){}
+      isMounted = false;
+      try {
+        if (routingControl) map.removeControl(routingControl);
+      } catch (_error) {}
     };
   }, [map, start, end]);
 

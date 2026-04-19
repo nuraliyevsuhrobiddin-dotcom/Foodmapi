@@ -111,7 +111,11 @@ export default function Home() {
       .then(data => {
         if (data.success) {
           setRestaurants(data.data);
-          setPagination({ page: data.pagination.page, pages: data.pagination.pages });
+          setPagination(
+            data.pagination
+              ? { page: data.pagination.page, pages: data.pagination.pages }
+              : { page: 1, pages: 1 }
+          );
         }
       })
       .catch(err => console.error("API Xatolik:", err));

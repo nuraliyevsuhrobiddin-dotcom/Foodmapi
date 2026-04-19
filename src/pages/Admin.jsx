@@ -112,7 +112,7 @@ export default function Admin() {
         });
         const uploadData = await uploadRes.json();
         if (uploadData.success && uploadData.urls.length > 0) {
-          galleryUrls = uploadData.urls.map(u => `${API_URL}${u}`);
+          galleryUrls = uploadData.urls;
           if (!mainImageUrl) mainImageUrl = galleryUrls[0];
         }
       } catch (err) {

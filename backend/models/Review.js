@@ -62,8 +62,8 @@ reviewSchema.post('save', function () {
   this.constructor.getAverageRating(this.restaurant);
 });
 
-// O'chirishdan oldin o'rtacha reytingni chaqirish
-reviewSchema.pre('deleteOne', { document: true, query: false }, function () {
+// O'chirishdan keyin o'rtacha reytingni qayta hisoblash
+reviewSchema.post('deleteOne', { document: true, query: false }, function () {
   this.constructor.getAverageRating(this.restaurant);
 });
 
