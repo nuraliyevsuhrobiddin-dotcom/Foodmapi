@@ -1,16 +1,64 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCart } from '../context/CartContext';
-import { X, Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { X, Trash2, Plus, Minus, ShoppingBag, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
 export default function CartSidebar() {
   const { isCartOpen, setIsCartOpen, cartItems, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
+  const { user, token, setIsAuthModalOpen } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cartItems.length === 0) return;
-    toast.success("Muvaffaqiyatli buyurtma berildi! Tez orada siz bilan bog'lanamiz.", { duration: 4000 });
-    clearCart();
-    setIsCartOpen(false);
+    
+    if (!user) {
+      setIsCartOpen(false);
+      setIsAuthModalOpen(true);
+      return toast.error("Buyurtma berish uchun tizimga kirish talab etiladi.");
+    }
+    
+    setIsSubmitting(true);
+    
+    // Group by restaurantId
+    const grouped = cartItems.reduce((acc, item) => {
+      const rid = item.restaurantId;
+      if (!rid) return acc; // safety fallback
+      if (!acc[rid]) acc[rid] = { items: [], total: 0 };
+      acc[rid].items.push({ name: item.name, quantity: item.quantity, price: item.price });
+      acc[rid].total += item.price * item.quantity;
+      return acc;
+    }, {});
+    
+    try {
+      const qs = Object.keys(grouped).map(rid => 
+        fetch(`${import.meta.env.VITE_API_URL || ''}/api/orders`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': `Bearer ${token}` 
+          },
+          body: JSON.stringify({
+             restaurant: rid,
+             items: grouped[rid].items,
+             totalPrice: grouped[rid].total
+          })
+        }).then(res => {
+          if(!res.ok) throw new Error("Tarmoq xatosi");
+          return res.json();
+        })
+      );
+      
+      await Promise.all(qs);
+      toast.success("Muvaffaqiyatli buyurtma berildi! 'Profil' dan kuzatishingiz mumkin.", { duration: 5000 });
+      clearCart();
+      setIsCartOpen(false);
+    } catch (err) {
+      toast.error("Buyurtma yuborishda xatolik yuz berdi. Iltimos qayta urinib ko'ring.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -92,9 +140,10 @@ export default function CartSidebar() {
                 </div>
                 <button 
                   onClick={handleCheckout}
-                  className="w-full py-4 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/30 hover:bg-orange-600 transition-colors"
+                  disabled={isSubmitting}
+                  className="w-full py-4 bg-primary text-white flex items-center justify-center gap-2 rounded-xl font-bold shadow-lg shadow-primary/30 hover:bg-orange-600 transition-colors disabled:opacity-70"
                 >
-                  Buyurtma qilish
+                  {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : "Buyurtma qilish"}
                 </button>
               </div>
             )}

@@ -374,7 +374,7 @@ export default function RestaurantDetail() {
                         <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-1">{item.name}</h4>
                         <p className="text-primary font-medium text-sm mt-1">{item.price} so'm</p>
                       </div>
-                      <button onClick={() => addToCart(item)} className="self-start text-xs font-semibold px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
+                      <button onClick={() => addToCart({ ...item, restaurantId: restaurant._id, restaurantName: restaurant.name })} className="self-start text-xs font-semibold px-4 py-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded-lg group-hover:bg-primary group-hover:text-white transition-colors">
                         Qo'shish
                       </button>
                     </div>
