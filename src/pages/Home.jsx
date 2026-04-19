@@ -39,6 +39,19 @@ function ChangeView({ center, zoom }) {
   return null;
 }
 
+// Component to fix Leaflet map grey tiles when toggling from Hidden to Block on mobile
+function MapResizer({ mobileView }) {
+  const map = useMap();
+  useEffect(() => {
+    if (mobileView === 'map') {
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200); // Allow time for CSS transition
+    }
+  }, [mobileView, map]);
+  return null;
+}
+
 export default function Home() {
   const [mapCenter, setMapCenter] = useState([38.8615, 65.7854]); // Default to Qarshi
   const [activeRestaurantId, setActiveRestaurantId] = useState(null);
@@ -256,6 +269,9 @@ export default function Home() {
         >
           {/* Change view when selected from list */}
           <ChangeView center={mapCenter} zoom={14} />
+          
+          {/* Fix map corruption on mobile toggle */}
+          <MapResizer mobileView={mobileView} />
           
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
