@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { LogOut, MapPin, Moon, Settings, Sun, User, Utensils, X } from 'lucide-react';
 import UserProfile from './UserProfile';
@@ -15,10 +15,25 @@ export default function MobileDrawer({
   dashboardTitle,
   isActivePath,
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
   const itemClass = (active) =>
     `flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-300 ${
       active ? 'bg-white/10 text-white' : 'text-white/78'
     }`;
+
+  const openRestaurantsPanel = () => {
+    onClose();
+
+    if (location.pathname !== '/') {
+      navigate('/#restaurants');
+      return;
+    }
+
+    window.location.hash = 'restaurants';
+    window.dispatchEvent(new CustomEvent('marketplace:open-restaurants-panel'));
+  };
 
   return (
     <AnimatePresence>
@@ -63,10 +78,14 @@ export default function MobileDrawer({
                 <MapPin size={18} />
                 Xarita
               </Link>
-              <Link onClick={onClose} to="/" className={itemClass(isActivePath('/restaurants'))}>
+              <button
+                type="button"
+                onClick={openRestaurantsPanel}
+                className={`${itemClass(location.pathname === '/' && location.hash === '#restaurants')} w-full`}
+              >
                 <Utensils size={18} />
                 Restoranlar
-              </Link>
+              </button>
               <button type="button" onClick={onToggleTheme} className={`${itemClass(false)} w-full`}>
                 {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 {darkMode ? "Yorug' rejim" : 'Tungi rejim'}

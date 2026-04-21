@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema(
   {
@@ -58,7 +59,17 @@ const userSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Restaurant'
       }
-    ]
+    ],
+    passwordResetToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    passwordResetExpires: {
+      type: Date,
+      default: null,
+      select: false,
+    },
   },
   {
     timestamps: true,
@@ -68,15 +79,26 @@ const userSchema = new mongoose.Schema(
 // Baza bilan ishlashdan oldin parolni hashlash
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
+  return next();
 });
 
 // Parollarni solishtirish uchun metod
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
+};
+
+userSchema.methods.createPasswordResetCode = function () {
+  const rawCode = String(Math.floor(100000 + Math.random() * 900000));
+  const hashedCode = crypto.createHash('sha256').update(rawCode).digest('hex');
+
+  this.passwordResetToken = hashedCode;
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return rawCode;
 };
 
 module.exports = mongoose.model('User', userSchema);

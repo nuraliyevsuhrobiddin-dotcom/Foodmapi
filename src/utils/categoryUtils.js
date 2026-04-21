@@ -1,7 +1,4 @@
 const categoryAliasMap = {
-  milliy: 'Milliy',
-  'milliy taomlar': 'Milliy',
-  national: 'Milliy',
   kafe: 'Kafe',
   cafe: 'Kafe',
   coffee: 'Kafe',
@@ -27,7 +24,6 @@ export const normalizeCategoryLabel = (value) => {
   if (categoryAliasMap[normalized]) return categoryAliasMap[normalized];
 
   if (normalized.includes('fast')) return 'Tez taomlar';
-  if (normalized.includes('milliy') || normalized.includes('national')) return 'Milliy';
   if (
     normalized.includes('kafe') ||
     normalized.includes('cafe') ||
@@ -60,14 +56,6 @@ export const getCategoryTheme = (category) => {
   const normalizedCategory = normalizeCategoryLabel(category);
 
   return {
-    Milliy: {
-      icon: 'Soup',
-      activeClass: 'bg-emerald-500 text-white border-emerald-500 shadow-emerald-500/25',
-      idleClass: 'border-emerald-200/80 text-emerald-700 bg-emerald-50/80 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300',
-      gradientClass: 'from-emerald-500 to-green-400',
-      surfaceClass: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300',
-      markerTone: 'marker-national',
-    },
     'Tez taomlar': {
       icon: 'Flame',
       activeClass: 'bg-rose-500 text-white border-rose-500 shadow-rose-500/25',

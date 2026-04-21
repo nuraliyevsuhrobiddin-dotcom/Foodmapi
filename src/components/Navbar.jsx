@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { LogOut, MapPin, Menu, Moon, Settings, Sun, User, Utensils } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -27,6 +27,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const dashboardPath = roleDashboardPaths[user?.role] || '/admin';
   const isMobileMenuOpen = drawerOverlay.isOpen;
@@ -79,18 +80,28 @@ export default function Navbar({ darkMode, toggleTheme }) {
     [location.pathname]
   );
 
+  const openRestaurantsPanel = () => {
+    if (location.pathname !== '/') {
+      navigate('/#restaurants');
+      return;
+    }
+
+    window.location.hash = 'restaurants';
+    window.dispatchEvent(new CustomEvent('marketplace:open-restaurants-panel'));
+  };
+
   return (
     <nav
       className={`fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl transition-all duration-300 ios-safe-top ${
         isScrolled ? 'shadow-md shadow-black/25 backdrop-blur-2xl' : ''
       }`}
     >
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+      <div className="mx-auto flex h-13 max-w-7xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#ffcc33] text-slate-950 shadow-[0_10px_24px_rgba(255,204,51,0.26)] sm:h-10 sm:w-10">
-            <Utensils size={18} />
+          <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-[#ffcc33] text-slate-950 shadow-[0_10px_24px_rgba(255,204,51,0.22)] sm:h-10 sm:w-10">
+            <Utensils size={16} />
           </div>
-          <span className="text-base font-semibold tracking-tight text-white sm:text-lg">
+          <span className="text-sm font-semibold tracking-tight text-white sm:text-lg">
             Food<span className="text-[#ffcc33]">Map</span>
           </span>
         </Link>
@@ -100,9 +111,13 @@ export default function Navbar({ darkMode, toggleTheme }) {
             <MapPin size={16} />
             Xarita
           </Link>
-          <Link to="/" className={navLinkClass(isActivePath('/restaurants'))}>
+          <button
+            type="button"
+            onClick={openRestaurantsPanel}
+            className={navLinkClass(location.pathname === '/' && location.hash === '#restaurants')}
+          >
             Restoranlar
-          </Link>
+          </button>
         </div>
 
         <div className="flex items-center gap-2">
@@ -119,18 +134,23 @@ export default function Navbar({ darkMode, toggleTheme }) {
             <button
               type="button"
               onClick={authOverlay.open}
-              className={iconButtonClass}
+              className={`${iconButtonClass} hidden md:inline-flex`}
               aria-label="Kirish"
             >
               <User className="h-5 w-5" />
             </button>
           ) : (
             <>
-              <Link to="/profile" className={`${iconButtonClass} relative`} title="Profil" aria-label="Profil">
+              <Link
+                to="/profile"
+                className={`${iconButtonClass} relative hidden md:inline-flex`}
+                title="Profil"
+                aria-label="Profil"
+              >
                 <User className="h-5 w-5" />
               </Link>
               {['admin', 'restaurant', 'courier'].includes(user.role) && (
-                <Link to={dashboardPath} className={`${iconButtonClass} hidden sm:inline-flex`} title={roleTitles[user.role] || 'Panel'}>
+                <Link to={dashboardPath} className={`${iconButtonClass} hidden md:inline-flex`} title={roleTitles[user.role] || 'Panel'}>
                   <Settings className="h-5 w-5" />
                 </Link>
               )}
@@ -139,10 +159,10 @@ export default function Navbar({ darkMode, toggleTheme }) {
 
           <button
             onClick={drawerOverlay.open}
-            className={`md:hidden ${iconButtonClass}`}
+            className={`md:hidden !h-9 !w-9 ${iconButtonClass}`}
             aria-label="Menyu"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4.5 w-4.5" />
           </button>
 
           {user ? (

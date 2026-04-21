@@ -15,7 +15,6 @@ import { getCategoryTheme, normalizeRestaurantCategories } from '../utils/catego
 import L from 'leaflet';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const ALL_CATEGORY = 'Barchasi';
 
 const userPinIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/14090/14090151.png',
@@ -161,8 +160,6 @@ const createRestaurantMarkerIcon = (restaurant, isActive = false) =>
 export default function Home() {
   const [mapCenter, setMapCenter] = useState([38.8615, 65.7854]);
   const [activeRestaurantId, setActiveRestaurantId] = useState(null);
-  const [categoryOptions, setCategoryOptions] = useState([ALL_CATEGORY]);
-  const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY);
   const [restaurants, setRestaurants] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
@@ -170,10 +167,9 @@ export default function Home() {
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
   const [sheetExpanded, setSheetExpanded] = useState(false);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [routeInfo, setRouteInfo] = useState(null);
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const { activeOverlay } = useModal();
   const { selectedRestaurant } = useMapFocus();
 
@@ -190,16 +186,10 @@ export default function Home() {
   const mobileSheetHeight = sheetExpanded ? '76vh' : '34vh';
   const activeFiltersCount = useMemo(() => {
     let count = 0;
-    if (selectedCategory !== ALL_CATEGORY) count += 1;
     if (sortBy) count += 1;
     if (searchQuery.trim()) count += 1;
     return count;
-  }, [searchQuery, selectedCategory, sortBy]);
-
-  const handleSelectCategory = (category) => {
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    setSelectedCategory(category);
-  };
+  }, [searchQuery, sortBy]);
 
   const handleGPSLocation = () => {
     if ('geolocation' in navigator) {
@@ -249,52 +239,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchCategories = async () => {
-      setCategoriesLoading(true);
-      try {
-        const res = await fetch(`${API_URL}/api/categories`);
-        const data = await res.json();
-        if (!isMounted) return;
-
-        if (res.ok && data.success && Array.isArray(data.data)) {
-          const normalizedCategories = data.data.filter(Boolean);
-          setCategoryOptions([ALL_CATEGORY, ...normalizedCategories]);
-        } else {
-          setCategoryOptions([ALL_CATEGORY]);
-        }
-      } catch (error) {
-        console.error('Category API error:', error);
-        if (isMounted) {
-          setCategoryOptions([ALL_CATEGORY]);
-        }
-      } finally {
-        if (isMounted) {
-          setCategoriesLoading(false);
-        }
-      }
-    };
-
-    fetchCategories();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 6000);
 
     const getFallbackRestaurants = () => {
       let fallback = MOCK_RESTAURANTS.map(normalizeMockRestaurant);
-
-      if (selectedCategory !== ALL_CATEGORY) {
-        fallback = fallback.filter((restaurant) =>
-          restaurant.category?.includes(selectedCategory)
-        );
-      }
 
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -328,20 +277,19 @@ export default function Home() {
 
     params.append('page', pagination.page);
     params.append('limit', 10);
-    if (selectedCategory !== ALL_CATEGORY) params.append('category', selectedCategory);
     if (searchQuery) params.append('search', searchQuery);
     if (sortBy === 'popular') params.append('sort', 'popular');
 
-    if (userLocation || sortBy === 'nearest') {
-      if (userLocation) {
-        url = `${API_URL}/api/restaurants/near`;
-        params.append('lat', userLocation[0]);
-        params.append('lng', userLocation[1]);
-        params.append('radius', 50);
-      }
+    if ((userLocation || sortBy === 'nearest') && userLocation) {
+      url = `${API_URL}/api/restaurants/near`;
+      params.append('lat', userLocation[0]);
+      params.append('lng', userLocation[1]);
+      params.append('radius', 50);
     }
 
     const queryString = params.toString();
+    // This effect is the data-loading boundary for the page.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRestaurantsLoading(true);
     fetch(`${url}${queryString ? `?${queryString}` : ''}`, {
       signal: controller.signal,
@@ -380,13 +328,30 @@ export default function Home() {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [selectedCategory, searchQuery, userLocation, sortBy, pagination.page, token]);
+  }, [searchQuery, userLocation, sortBy, pagination.page, token]);
 
   useEffect(() => {
     if (activeOverlay) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSheetExpanded(false);
     }
   }, [activeOverlay]);
+
+  useEffect(() => {
+    const openPanel = () => {
+      setSheetExpanded(true);
+    };
+
+    if (window.location.hash === '#restaurants') {
+      openPanel();
+    }
+
+    window.addEventListener('marketplace:open-restaurants-panel', openPanel);
+
+    return () => {
+      window.removeEventListener('marketplace:open-restaurants-panel', openPanel);
+    };
+  }, []);
 
   useEffect(() => {
     if (!selectedRestaurant?.focusKey) return;
@@ -403,6 +368,7 @@ export default function Home() {
       focusedRestaurant.location.coordinates[0],
     ];
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRestaurantId(focusedRestaurantId);
     setMapCenter(nextCenter);
     setSheetExpanded(true);
@@ -560,6 +526,7 @@ export default function Home() {
       </div>
 
       <motion.section
+        id="restaurants"
         drag={isDesktop ? false : 'y'}
         dragConstraints={{ top: 0, bottom: 0 }}
         dragElastic={0.08}
@@ -589,7 +556,7 @@ export default function Home() {
             {activeFiltersCount ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc33] px-3 py-1 text-xs font-semibold text-slate-950">
                 <SlidersHorizontal size={12} />
-                  {activeFiltersCount} filtr
+                {activeFiltersCount} filtr
               </span>
             ) : null}
           </div>
@@ -604,9 +571,6 @@ export default function Home() {
 
         <div className="flex-1 overflow-y-auto px-4 pb-5 pt-4 sm:px-5 ios-safe-bottom">
           <FilterPanel
-            categoryOptions={categoryOptions}
-            selectedCategory={selectedCategory}
-            onSelectCategory={handleSelectCategory}
             sortBy={sortBy}
             setSortBy={setSortBy}
             triggerGPS={handleGPSLocation}
@@ -617,11 +581,6 @@ export default function Home() {
               <span className="text-sm font-medium text-white/74">
                 {restaurantsLoading ? 'Joylar yuklanmoqda...' : `${displayedRestaurants.length} ta joy topildi`}
               </span>
-              {categoriesLoading ? (
-                <span className="rounded-full bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white/60">
-                  Kategoriyalar yuklanmoqda...
-                </span>
-              ) : null}
               {sortBy === 'nearest' ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc33] px-3 py-1 text-xs font-semibold text-slate-950">
                   <MapPin size={12} />

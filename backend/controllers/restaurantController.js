@@ -116,7 +116,6 @@ const getRestaurants = async (req, res, next) => {
 
     // Filter criteria
     let query = {};
-    console.log("Req Query:", req.query);
     const categoryQuery = buildCategoryQuery(req.query.category);
     if (categoryQuery) {
       query.category = categoryQuery;

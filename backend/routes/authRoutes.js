@@ -1,7 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const router = express.Router();
-const { registerUser, loginUser } = require('../controllers/authController');
+const { registerUser, loginUser, forgotPassword, resetPassword } = require('../controllers/authController');
 
 const validate = (req, res, next) => {
   const errors = validationResult(req);
@@ -30,6 +30,24 @@ router.post(
   ],
   validate,
   loginUser
+);
+
+router.post(
+  '/forgot-password',
+  [body('email', "Iltimos, to'g'ri email kiriting").isEmail()],
+  validate,
+  forgotPassword
+);
+
+router.post(
+  '/reset-password',
+  [
+    body('email', "Iltimos, to'g'ri email kiriting").isEmail(),
+    body('code', 'Tiklash kodi kiritilishi shart').isLength({ min: 4 }),
+    body('password', "Parol kamida 6 ta belgidan iborat bo'lishi kerak").isLength({ min: 6 }),
+  ],
+  validate,
+  resetPassword
 );
 
 module.exports = router;

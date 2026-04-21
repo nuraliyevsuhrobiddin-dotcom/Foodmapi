@@ -99,8 +99,8 @@ function SocketEventsBridge() {
 
 function App() {
   const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' || 
-      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    return localStorage.getItem('theme') === 'dark'
+      || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
   });
 
   useEffect(() => {
@@ -113,9 +113,8 @@ function App() {
     }
   }, [darkMode]);
 
-  // Live Socket.io Notifications listening
   useEffect(() => {
-    socket.on('new_review', (data) => {
+    const handleNewReview = (data) => {
       toast(`${data.username} "${data.restaurantName}" restoraniga ${data.rating} yulduz berdi!`, {
         icon: '🔔',
         style: {
@@ -127,8 +126,11 @@ function App() {
           border: '1px solid rgba(255, 255, 255, 0.1)',
         },
       });
-    });
-    return () => socket.off('new_review');
+    };
+
+    socket.on('new_review', handleNewReview);
+
+    return () => socket.off('new_review', handleNewReview);
   }, []);
 
   const toggleTheme = () => setDarkMode(!darkMode);
@@ -140,42 +142,42 @@ function App() {
           <CartProvider>
             <Router>
               <div className="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
-              <Toaster
-                position="top-right"
-                reverseOrder={false}
-                toastOptions={{
-                  duration: 3500,
-                  style: {
-                    borderRadius: '18px',
-                    padding: '14px 16px',
-                    background: 'rgba(15, 23, 42, 0.94)',
-                    color: '#fff',
-                  },
-                }}
-                containerStyle={{
-                  top: 14,
-                  left: 12,
-                  right: 12,
-                }}
-              />
-              <SocketEventsBridge />
-              <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
-              <AuthModal />
-              <CartSidebar />
-              <main className="flex-1 flex flex-col pt-[56px] sm:pt-[64px]">
-              <Suspense fallback={<div className="flex-1 bg-background" />}>
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
-                  <Route path="/courier-dashboard" element={<CourierDashboard />} />
-                  <Route path="/profile" element={<Profile />} />
-                </Routes>
-              </Suspense>
-            </main>
-            </div>
-          </Router>
+                <Toaster
+                  position="top-right"
+                  reverseOrder={false}
+                  toastOptions={{
+                    duration: 3500,
+                    style: {
+                      borderRadius: '18px',
+                      padding: '14px 16px',
+                      background: 'rgba(15, 23, 42, 0.94)',
+                      color: '#fff',
+                    },
+                  }}
+                  containerStyle={{
+                    top: 14,
+                    left: 12,
+                    right: 12,
+                  }}
+                />
+                <SocketEventsBridge />
+                <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
+                <AuthModal />
+                <CartSidebar />
+                <main className="flex-1 flex flex-col pt-[56px] sm:pt-[64px]">
+                  <Suspense fallback={<div className="flex-1 bg-background" />}>
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+                      <Route path="/admin" element={<Admin />} />
+                      <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
+                      <Route path="/courier-dashboard" element={<CourierDashboard />} />
+                      <Route path="/profile" element={<Profile />} />
+                    </Routes>
+                  </Suspense>
+                </main>
+              </div>
+            </Router>
           </CartProvider>
         </MapFocusProvider>
       </AuthProvider>

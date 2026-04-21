@@ -1,15 +1,4 @@
-import { Compass, Flame, Grid2x2, MapPinned, Soup, Store, UtensilsCrossed } from 'lucide-react';
-import { getCategoryTheme, normalizeCategoryLabel } from '../utils/categoryUtils';
-
-const ICON_MAP = {
-  Grid2x2,
-  Soup,
-  Flame,
-  Store,
-  UtensilsCrossed,
-};
-
-const ALL_CATEGORY = 'Barchasi';
+import { Compass, MapPinned } from 'lucide-react';
 
 function CategoryChip({ active, children, onClick, tone = '', icon: Icon }) {
   return (
@@ -29,9 +18,6 @@ function CategoryChip({ active, children, onClick, tone = '', icon: Icon }) {
 }
 
 export default function CategoryList({
-  categoryOptions,
-  selectedCategory,
-  onSelectCategory,
   sortBy,
   setSortBy,
   triggerGPS,
@@ -42,17 +28,14 @@ export default function CategoryList({
       <div className="flex items-center justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
-            Kategoriyalar
+            Saralash
           </p>
-          <p className="mt-1 text-sm text-white/72">Tezkor filtrlash va yaqin joylar</p>
+          <p className="mt-1 text-sm text-white/72">Restoranlarni tezkor tartiblash</p>
         </div>
-        {(selectedCategory !== ALL_CATEGORY || sortBy) && (
+        {sortBy && (
           <button
             type="button"
-            onClick={() => {
-              onSelectCategory(ALL_CATEGORY);
-              setSortBy('');
-            }}
+            onClick={() => setSortBy('')}
             className="rounded-full border border-white/12 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-white/70 transition hover:bg-white/[0.12]"
           >
             Tozalash
@@ -62,24 +45,6 @@ export default function CategoryList({
 
       <div className="overflow-x-auto no-scrollbar">
         <div className="flex min-w-max gap-2.5 pb-1">
-          {categoryOptions.map((category) => {
-            const normalizedCategory = normalizeCategoryLabel(category);
-            const theme = category === ALL_CATEGORY ? null : getCategoryTheme(normalizedCategory);
-            const Icon = category === ALL_CATEGORY ? Grid2x2 : ICON_MAP[theme?.icon] || UtensilsCrossed;
-
-            return (
-              <CategoryChip
-                key={category}
-                active={selectedCategory === category}
-                onClick={() => onSelectCategory(category)}
-                tone={selectedCategory === category ? '' : theme?.idleClass?.includes('amber') ? 'hover:bg-amber-500/18' : theme?.idleClass?.includes('rose') ? 'hover:bg-rose-500/16' : theme?.idleClass?.includes('emerald') ? 'hover:bg-emerald-500/16' : 'hover:bg-white/[0.14]'}
-                icon={Icon}
-              >
-                {category === ALL_CATEGORY ? 'Barchasi' : normalizedCategory}
-              </CategoryChip>
-            );
-          })}
-
           <CategoryChip
             active={sortBy === 'nearest'}
             onClick={() => {

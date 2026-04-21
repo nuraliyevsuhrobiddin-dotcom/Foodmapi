@@ -70,5 +70,3 @@ export const MOCK_RESTAURANTS = [
     ]
   }
 ];
-
-export const CATEGORIES = ['Barchasi', 'Saqlanganlar', 'Milliy', 'Tez taomlar', 'Kafe'];

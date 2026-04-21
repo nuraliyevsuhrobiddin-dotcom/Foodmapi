@@ -3,9 +3,6 @@ const Restaurant = require('../models/Restaurant');
 const normalizeCategoryLabel = (value) => {
   const normalizedValue = String(value || '').trim().toLowerCase();
   const categoryMap = {
-    milliy: 'Milliy',
-    'milliy taomlar': 'Milliy',
-    national: 'Milliy',
     kafe: 'Kafe',
     cafe: 'Kafe',
     coffee: 'Kafe',
@@ -29,7 +26,6 @@ const normalizeCategoryLabel = (value) => {
   if (categoryMap[normalizedValue]) return categoryMap[normalizedValue];
 
   if (normalizedValue.includes('fast')) return 'Tez taomlar';
-  if (normalizedValue.includes('milliy') || normalizedValue.includes('national')) return 'Milliy';
   if (
     normalizedValue.includes('kafe') ||
     normalizedValue.includes('cafe') ||
@@ -61,6 +57,7 @@ const getCategories = async (req, res, next) => {
     const categories = rawCategories
       .map(normalizeCategoryLabel)
       .filter(Boolean)
+      .filter((category) => category !== 'Milliy')
       .filter((category, index, array) => array.indexOf(category) === index)
       .sort((firstCategory, secondCategory) => firstCategory.localeCompare(secondCategory));
 
