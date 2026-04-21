@@ -512,27 +512,27 @@ export default function RestaurantDetail() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4 ios-safe-bottom">
-        <div className="pointer-events-auto w-full max-w-md rounded-[28px] border border-white/10 bg-slate-950/88 p-3 shadow-[0_-24px_60px_rgba(15,23,42,0.52)] backdrop-blur-xl">
-          <button
-            type="button"
-            onClick={cartOverlay.open}
-            className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[#ffcc33] px-4 py-3.5 text-left text-sm font-semibold text-slate-950 transition-all duration-300 hover:brightness-105 active:scale-[0.99] sm:text-base"
-          >
-            <span className="min-w-0">
-              <span className="block">Buyurtma berish</span>
-              <span className="mt-0.5 block text-xs font-medium text-slate-900/70 sm:text-sm">
-                {restaurantCartSummary.itemCount > 0
-                  ? `Shu restoran: ${restaurantCartSummary.itemCount} dona, ${restaurantCartSummary.total.toLocaleString()} so'm`
-                  : "Taom qo'shsangiz shu yerda mini xulosa ko'rinadi"}
+      {restaurantCartSummary.itemCount > 0 ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4 ios-safe-bottom">
+          <div className="pointer-events-auto w-full max-w-md rounded-[28px] border border-white/10 bg-slate-950/88 p-3 shadow-[0_-24px_60px_rgba(15,23,42,0.52)] backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={cartOverlay.open}
+              className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[#ffcc33] px-4 py-3.5 text-left text-sm font-semibold text-slate-950 transition-all duration-300 hover:brightness-105 active:scale-[0.99] sm:text-base"
+            >
+              <span className="min-w-0">
+                <span className="block">Buyurtma berish</span>
+                <span className="mt-0.5 block text-xs font-medium text-slate-900/70 sm:text-sm">
+                  {`Shu restoran: ${restaurantCartSummary.itemCount} dona, ${restaurantCartSummary.total.toLocaleString()} so'm`}
+                </span>
               </span>
-            </span>
-            <span className="shrink-0 rounded-full bg-slate-950/12 px-3 py-1 text-xs font-bold sm:text-sm">
-              {restaurantCartSummary.itemGroups} ta
-            </span>
-          </button>
+              <span className="shrink-0 rounded-full bg-slate-950/12 px-3 py-1 text-xs font-bold sm:text-sm">
+                {restaurantCartSummary.itemGroups} ta
+              </span>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }
