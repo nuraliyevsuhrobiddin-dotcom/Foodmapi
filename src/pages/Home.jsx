@@ -1,9 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { Link } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
-// Mock data if needed
-// import { MOCK_RESTAURANTS } from '../data/mockData';
-import { Search, MapPin, List, Map as MapIcon, Mic, Navigation, Sparkles } from 'lucide-react';
+import { Search, MapPin, Mic, Navigation, Sparkles, ChevronUp, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -16,31 +15,36 @@ import L from 'leaflet';
 const API_URL = import.meta.env.VITE_API_URL || '';
 const ALL_CATEGORY = 'All';
 
-// A unique animated marker for the actual user
 const userPinIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/14090/14090151.png', // Blue location pin/person icon
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/14090/14090151.png',
   iconSize: [36, 36],
   iconAnchor: [18, 36],
   popupAnchor: [0, -32],
 });
 
-// Component to recenter map when clicking on list item
 function ChangeView({ center, zoom }) {
   const map = useMap();
   map.setView(center, zoom);
   return null;
 }
 
-// Component to fix Leaflet map grey tiles when toggling from Hidden to Block on mobile
-function MapResizer({ mobileView }) {
+function MapResizer({ watchKey }) {
   const map = useMap();
+
   useEffect(() => {
-    if (mobileView === 'map') {
-      setTimeout(() => {
-        map.invalidateSize();
-      }, 200); // Allow time for CSS transition
-    }
-  }, [mobileView, map]);
+    const firstPass = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 180);
+    const secondPass = window.setTimeout(() => {
+      map.invalidateSize();
+    }, 450);
+
+    return () => {
+      window.clearTimeout(firstPass);
+      window.clearTimeout(secondPass);
+    };
+  }, [watchKey, map]);
+
   return null;
 }
 
@@ -72,17 +76,19 @@ function RoutingMachine({ start, end, onRouteFound }) {
         show: false,
         createMarker: () => null,
         lineOptions: {
-          styles: [{ color: '#ff6b35', weight: 5, opacity: 0.85 }]
-        }
-      }).on('routesfound', (e) => {
-        const route = e.routes?.[0];
-        if (!route || !onRouteFound) return;
+          styles: [{ color: '#ffcc33', weight: 5, opacity: 0.9 }],
+        },
+      })
+        .on('routesfound', (e) => {
+          const route = e.routes?.[0];
+          if (!route || !onRouteFound) return;
 
-        const distance = (route.summary.totalDistance / 1000).toFixed(2);
-        const time = Math.round(route.summary.totalTime / 60);
+          const distance = (route.summary.totalDistance / 1000).toFixed(2);
+          const time = Math.round(route.summary.totalTime / 60);
 
-        onRouteFound({ distance, time });
-      }).addTo(map);
+          onRouteFound({ distance, time });
+        })
+        .addTo(map);
     };
 
     loadRouting();
@@ -143,20 +149,21 @@ const createRestaurantMarkerIcon = (restaurant, isActive = false) =>
   });
 
 export default function Home() {
-  const [mapCenter, setMapCenter] = useState([38.8615, 65.7854]); // Default to Qarshi
+  const [mapCenter, setMapCenter] = useState([38.8615, 65.7854]);
   const [activeRestaurantId, setActiveRestaurantId] = useState(null);
   const [categoryOptions, setCategoryOptions] = useState([ALL_CATEGORY]);
   const [selectedCategory, setSelectedCategory] = useState(ALL_CATEGORY);
   const [restaurants, setRestaurants] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null);
-  const [sortBy, setSortBy] = useState(''); // 'popular' yoki 'nearest'
+  const [sortBy, setSortBy] = useState('');
   const [pagination, setPagination] = useState({ page: 1, pages: 1 });
-  const [mobileView, setMobileView] = useState('list'); // 'list' yoki 'map'
+  const [sheetExpanded, setSheetExpanded] = useState(false);
   const [usingFallbackData, setUsingFallbackData] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [routeInfo, setRouteInfo] = useState(null);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   const activeRestaurant = restaurants.find(
     (restaurant) => (restaurant._id || restaurant.id) === activeRestaurantId
@@ -164,13 +171,24 @@ export default function Home() {
   const activeRestaurantCoords = activeRestaurant?.location?.coordinates
     ? [activeRestaurant.location.coordinates[1], activeRestaurant.location.coordinates[0]]
     : null;
+  const displayedRestaurants = restaurants;
+  const displayedPagination = pagination;
+  const showFallbackNotice = usingFallbackData;
+  const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 768 : false;
+  const mobileSheetHeight = sheetExpanded ? '76vh' : '34vh';
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategory !== ALL_CATEGORY) count += 1;
+    if (sortBy) count += 1;
+    if (searchQuery.trim()) count += 1;
+    return count;
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const handleSelectCategory = (category) => {
     setPagination((prev) => ({ ...prev, page: 1 }));
     setSelectedCategory(category);
   };
 
-  // Ask for GPS Location
   const handleGPSLocation = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -179,29 +197,28 @@ export default function Home() {
           const lng = position.coords.longitude;
           setUserLocation([lat, lng]);
           setMapCenter([lat, lng]);
-          setPagination(prev => ({ ...prev, page: 1 }));
-          if(sortBy !== 'nearest') setSortBy('nearest');
+          setPagination((prev) => ({ ...prev, page: 1 }));
+          if (sortBy !== 'nearest') setSortBy('nearest');
         },
         (error) => {
-          alert("Joylashuvni aniqlashda xatolik yuz berdi: " + error.message);
+          toast.error(`Joylashuvni aniqlashda xatolik: ${error.message}`);
         }
       );
     } else {
-      alert("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi.");
+      toast.error("Brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi.");
     }
   };
 
-  // Voice search logic
   const startVoiceSearch = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       return toast.error("Kechirasiz, brauzeringizda ovozli qidiruv ishlamaydi.");
     }
-    
+
     const recognition = new SpeechRecognition();
     recognition.lang = 'uz-UZ';
     recognition.interimResults = false;
-    
+
     recognition.onstart = () => {
       toast('Gapiring, eshitaman...', { icon: '🎙️', duration: 3000 });
     };
@@ -218,10 +235,6 @@ export default function Home() {
 
     recognition.start();
   };
-
-  const displayedRestaurants = restaurants;
-  const displayedPagination = pagination;
-  const showFallbackNotice = usingFallbackData;
 
   useEffect(() => {
     let isMounted = true;
@@ -258,10 +271,9 @@ export default function Home() {
     };
   }, []);
 
-  // Fetch restaurants from backend
   useEffect(() => {
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 4500);
+    const timeoutId = window.setTimeout(() => controller.abort(), 6000);
 
     const getFallbackRestaurants = () => {
       let fallback = MOCK_RESTAURANTS.map(normalizeMockRestaurant);
@@ -300,14 +312,14 @@ export default function Home() {
     };
 
     let url = `${API_URL}/api/restaurants`;
-    let params = new URLSearchParams();
-    
+    const params = new URLSearchParams();
+
     params.append('page', pagination.page);
     params.append('limit', 10);
     if (selectedCategory !== ALL_CATEGORY) params.append('category', selectedCategory);
     if (searchQuery) params.append('search', searchQuery);
     if (sortBy === 'popular') params.append('sort', 'popular');
-    
+
     if (userLocation || sortBy === 'nearest') {
       if (userLocation) {
         url = `${API_URL}/api/restaurants/near`;
@@ -318,294 +330,344 @@ export default function Home() {
     }
 
     const queryString = params.toString();
-    fetch(`${url}${queryString ? `?${queryString}` : ''}`, { signal: controller.signal })
-      .then(res => res.json())
-      .then(data => {
-        window.clearTimeout(timeoutId);
-        if (data.success) {
-          if (Array.isArray(data.data) && data.data.length > 0) {
-            setRestaurants(data.data.map(normalizeRestaurantCategories));
-            setUsingFallbackData(false);
-          } else {
-            getFallbackRestaurants();
-          }
-          setPagination(
-            data.pagination
-              ? { page: data.pagination.page, pages: data.pagination.pages }
-              : { page: 1, pages: 1 }
-          );
+    setRestaurantsLoading(true);
+    fetch(`${url}${queryString ? `?${queryString}` : ''}`, {
+      signal: controller.signal,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || 'API error');
         }
+        return data;
       })
-      .catch(err => {
-        console.error("API Xatolik:", err);
+      .then((data) => {
+        window.clearTimeout(timeoutId);
+        const normalizedRestaurants = Array.isArray(data.data)
+          ? data.data.map(normalizeRestaurantCategories)
+          : [];
+
+        setRestaurants(normalizedRestaurants);
+        setUsingFallbackData(false);
+        setPagination(
+          data.pagination
+            ? { page: data.pagination.page, pages: data.pagination.pages }
+            : { page: 1, pages: 1 }
+        );
+      })
+      .catch((err) => {
+        console.error('API Xatolik:', err);
         getFallbackRestaurants();
+      })
+      .finally(() => {
+        setRestaurantsLoading(false);
       });
 
     return () => {
       window.clearTimeout(timeoutId);
       controller.abort();
     };
-  }, [selectedCategory, searchQuery, userLocation, sortBy, pagination.page]);
-  
+  }, [selectedCategory, searchQuery, userLocation, sortBy, pagination.page, token]);
+
   return (
-    <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
-      
-      {/* List Panel (Sidebar on desktop, Bottom/Scroll on mobile) */}
-      <div className={`w-full md:w-[420px] lg:w-[500px] bg-background flex flex-col z-20 h-[calc(100dvh-76px)] md:h-[calc(100dvh-80px)] shrink-0 border-r border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden ${mobileView === 'list' ? 'flex' : 'hidden md:flex'}`}>
-        
-        {/* Search Bar */}
-        <div className="shrink-0 border-b border-slate-200 bg-[radial-gradient(circle_at_top_left,_rgba(255,107,53,0.14),_transparent_40%),linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 sm:p-4 dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(255,107,53,0.18),_transparent_36%),linear-gradient(180deg,rgba(30,41,59,0.98),rgba(15,23,42,0.98))]">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-400 dark:text-slate-500">FoodMap</p>
-              <h1 className="mt-1 text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-[22px]">
-                Qayerda ovqatlanamiz?
-              </h1>
-            </div>
-            <div className="hidden rounded-full bg-white/80 px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm backdrop-blur sm:inline-flex dark:bg-slate-900/60 dark:text-slate-300">
-              Qarshi bo'ylab
-            </div>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input 
-              type="text" 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Qayerda ovqatlanamiz? (Qashqadaryo)" 
-              className="w-full rounded-[22px] border border-white/70 bg-white/90 py-3.5 pl-10 pr-12 text-slate-800 shadow-sm outline-none transition-all duration-300 placeholder:text-slate-400 focus:border-primary focus:bg-white dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100 dark:focus:bg-slate-900"
-            />
-            <button 
-              onClick={startVoiceSearch}
-              className="absolute right-1.5 top-1/2 inline-flex touch-target -translate-y-1/2 items-center justify-center rounded-2xl text-slate-400 transition-colors hover:text-primary hover:scale-110"
-              title="Ovoz orqali qidirish"
-            >
-              <Mic size={20} />
-            </button>
-          </div>
-        </div>
-
-        <FilterPanel
-          categoryOptions={categoryOptions}
-          selectedCategory={selectedCategory}
-          onSelectCategory={handleSelectCategory}
-          sortBy={sortBy}
-          setSortBy={setSortBy}
-          triggerGPS={handleGPSLocation}
-        />
-
-        {/* Scrollable List */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 ios-safe-bottom">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              Topilgan joylar: {displayedRestaurants.length}
-            </p>
-            {categoriesLoading && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                Kategoriyalar yuklanmoqda...
-              </span>
-            )}
-            {sortBy === 'nearest' && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <MapPin size={12} />
-                Sizga eng yaqinlar
-              </span>
-            )}
-            {selectedCategory !== ALL_CATEGORY && (
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
-                {selectedCategory}
-              </span>
-            )}
-          </div>
-          {!showFallbackNotice && displayedRestaurants.length > 0 && (
-            <div className="mb-4 flex items-center gap-2 rounded-2xl border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur-sm dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300">
-              <Sparkles size={14} className="text-primary" />
-              Tanlangan kategoriya va lokatsiyaga mos joylar ko'rsatilmoqda
-            </div>
-          )}
-          {showFallbackNotice && (
-            <p className="text-xs text-amber-600 dark:text-amber-300 -mt-1 mb-3">
-              Backend vaqtincha ulanmagan, demo restoranlar ko'rsatilmoqda.
-            </p>
-          )}
-          <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-              hidden: { opacity: 0 },
-              visible: { opacity: 1, transition: { staggerChildren: 0.08 } }
-            }}
-            className="space-y-4"
-          >
-            {displayedRestaurants.map(restaurant => (
-              <motion.div 
-                variants={{
-                  hidden: { opacity: 0, y: 20 },
-                  visible: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
-                }}
-                key={restaurant._id || restaurant.id}
-                onClick={() => {
-                  setMapCenter([restaurant.location.coordinates[1], restaurant.location.coordinates[0]]);
-                  setActiveRestaurantId(restaurant._id || restaurant.id);
-                }}
-                className="cursor-pointer"
-              >
-                <RestaurantCard restaurant={restaurant} />
-              </motion.div>
-            ))}
-          </motion.div>
-
-          {/* Pagination Buttons */}
-          {displayedPagination.pages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4 pb-8">
-              <button 
-                disabled={displayedPagination.page === 1}
-                onClick={() => setPagination({ ...displayedPagination, page: displayedPagination.page - 1 })}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                Oldingi
-              </button>
-              <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
-                {displayedPagination.page} / {displayedPagination.pages}
-              </span>
-              <button 
-                disabled={displayedPagination.page === displayedPagination.pages}
-                onClick={() => setPagination({ ...displayedPagination, page: displayedPagination.page + 1 })}
-                className="px-4 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm disabled:opacity-50 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              >
-                Keyingi
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Map Area */}
-      <div className={`flex-1 h-[calc(100dvh-76px)] md:h-[calc(100dvh-80px)] relative z-10 w-full shrink-0 ${mobileView === 'map' ? 'block' : 'hidden md:block'}`}>
-        <MapContainer 
-          center={mapCenter} 
-          zoom={13} 
-          className="w-full h-full"
-          zoomControl={false}
-        >
-          {/* Change view when selected from list */}
+    <div className="relative flex-1 overflow-hidden bg-[#0b1220]">
+      <div className="absolute inset-0">
+        <MapContainer center={mapCenter} zoom={13} className="h-full w-full" zoomControl={false}>
           <ChangeView center={mapCenter} zoom={14} />
-          
-          {/* Fix map corruption on mobile toggle */}
-          <MapResizer mobileView={mobileView} />
-          
+          <MapResizer watchKey={`${sheetExpanded}-${displayedRestaurants.length}-${activeRestaurantId || ''}`} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
 
-          {/* Render User Location Marker */}
-          {userLocation && (
+          {userLocation ? (
             <Marker position={userLocation} icon={userPinIcon}>
               <Popup className="custom-popup font-bold">Men shu yerdaman!</Popup>
             </Marker>
-          )}
+          ) : null}
 
-          {userLocation && activeRestaurantCoords && (
+          {userLocation && activeRestaurantCoords ? (
             <RoutingMachine start={userLocation} end={activeRestaurantCoords} onRouteFound={setRouteInfo} />
-          )}
+          ) : null}
 
-          {displayedRestaurants.map((restaurant) => (
-            (() => {
-              const restaurantId = restaurant._id || restaurant.id;
-              const isActive = activeRestaurantId === restaurantId;
-              const restaurantMapUrl = getRestaurantMapUrl(restaurant);
-              return (
-            <Marker 
-              key={restaurantId} 
-              position={[restaurant.location.coordinates[1], restaurant.location.coordinates[0]]}
-              icon={createRestaurantMarkerIcon(restaurant, isActive)}
-              eventHandlers={{
-                click: () => {
-                  setActiveRestaurantId(restaurantId);
-                },
-              }}
-            >
-              <Popup className="custom-popup">
-                <div className="min-w-[220px]">
-                  <img 
-                    src={restaurant.image || restaurant.coverImage} 
-                    alt={restaurant.name} 
-                    className="w-full h-28 object-cover rounded-xl mb-3" 
-                  />
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <h4 className="font-bold text-sm text-slate-900 dark:text-slate-100 line-clamp-1">{restaurant.name}</h4>
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
-                      {restaurant.category?.[0] || restaurant.type || 'Restoran'}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5 mb-3">
-                    {restaurant.distance !== null && restaurant.distance !== undefined && (
-                      <p className="text-xs text-slate-500 dark:text-slate-300 flex items-center gap-1">
-                        <MapPin size={12} /> {restaurant.distance} km uzoqlikda
+          {displayedRestaurants.map((restaurant) => {
+            const restaurantId = restaurant._id || restaurant.id;
+            const isActive = activeRestaurantId === restaurantId;
+            const restaurantMapUrl = getRestaurantMapUrl(restaurant);
+
+            return (
+              <Marker
+                key={restaurantId}
+                position={[restaurant.location.coordinates[1], restaurant.location.coordinates[0]]}
+                icon={createRestaurantMarkerIcon(restaurant, isActive)}
+                eventHandlers={{
+                  click: () => {
+                    setActiveRestaurantId(restaurantId);
+                  },
+                }}
+              >
+                <Popup className="custom-popup">
+                  <div className="map-popup-card min-w-[240px] max-w-[260px] rounded-[22px] border border-white/10 bg-[#1e293b]/95 p-3 text-white shadow-[0_22px_60px_rgba(2,6,23,0.45)] backdrop-blur-xl">
+                    <img
+                      src={restaurant.image || restaurant.coverImage}
+                      alt={restaurant.name}
+                      className="mb-3 h-32 w-full rounded-2xl object-cover"
+                    />
+                    <div className="mb-2 flex items-start justify-between gap-2">
+                      <h4 className="line-clamp-1 flex-1 text-base font-semibold text-white">
+                        {restaurant.name}
+                      </h4>
+                      <span className="shrink-0 rounded-full bg-[#ffcc33] px-2.5 py-1 text-[11px] font-semibold text-slate-950">
+                        {restaurant.category?.[0] || restaurant.type || 'Restoran'}
+                      </span>
+                    </div>
+                    <div className="mb-4 space-y-2">
+                      {restaurant.distance !== null && restaurant.distance !== undefined ? (
+                        <p className="flex items-center gap-1.5 text-sm text-slate-300">
+                          <MapPin size={14} className="text-[#ffcc33]" /> {restaurant.distance} km uzoqlikda
+                        </p>
+                      ) : null}
+                      <p className="line-clamp-2 text-sm text-slate-300">
+                        {restaurant.address}
                       </p>
-                    )}
-                    <p className="text-xs text-slate-500 dark:text-slate-300 line-clamp-2">
-                      {restaurant.address}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <a href={`/restaurant/${restaurantId}`} className="block w-full text-center bg-primary text-white text-xs py-2 rounded-xl font-semibold hover:bg-orange-600 transition-colors">
-                      Ko'rish
-                    </a>
-                    {restaurantMapUrl && (
-                      <a
-                        href={restaurantMapUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block w-full text-center bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-100 text-xs py-2 rounded-xl font-semibold hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Link
+                        to={`/restaurant/${restaurantId}`}
+                        className="inline-flex w-full items-center justify-center rounded-2xl bg-orange-500 px-3 py-2.5 text-center text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
                       >
-                        Google Maps'da ochish
-                      </a>
-                    )}
+                        Ko'rish
+                      </Link>
+                      {restaurantMapUrl ? (
+                        <a
+                          href={restaurantMapUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex w-full items-center justify-center rounded-2xl bg-white/10 px-3 py-2.5 text-center text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
+                        >
+                          Xaritada ochish
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              </Popup>
-            </Marker>
-              );
-            })()
-          ))}
+                </Popup>
+              </Marker>
+            );
+          })}
         </MapContainer>
 
-        {userLocation && activeRestaurant && routeInfo && (
-          <div className="absolute top-4 right-4 sm:right-6 z-[400] rounded-2xl bg-white/92 px-4 py-3 shadow-xl backdrop-blur-md dark:bg-slate-900/92">
-            <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-              <Navigation size={16} className="text-primary" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-[410] h-44 bg-gradient-to-b from-slate-950/88 via-slate-950/28 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[410] h-52 bg-gradient-to-t from-slate-950 via-slate-950/28 to-transparent" />
+
+        <div className="absolute inset-x-0 top-0 z-[420] px-4 pb-3 pt-4 sm:px-6 lg:px-8 ios-safe-top">
+          <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="mb-3 hidden items-center gap-2 sm:flex">
+                <span className="rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/60 backdrop-blur-md">
+                  FoodMap Go
+                </span>
+              </div>
+              <div className="rounded-[30px] border border-white/10 bg-slate-950/66 p-2 shadow-[0_20px_60px_rgba(15,23,42,0.35)] backdrop-blur-xl">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-white/38" size={18} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Taom, restoran yoki manzil qidiring"
+                      className="h-12 w-full rounded-[24px] border border-white/8 bg-white/[0.05] pl-11 pr-4 text-sm text-white outline-none transition placeholder:text-white/35 focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
+                    />
+                  </div>
+                  <button
+                    onClick={startVoiceSearch}
+                    className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[22px] bg-white/[0.08] text-white/72 transition hover:bg-white/[0.12] active:scale-[0.98]"
+                    title="Ovoz orqali qidirish"
+                  >
+                    <Mic size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGPSLocation}
+                    className="hidden h-12 items-center gap-2 rounded-[22px] bg-[#ffcc33] px-4 text-sm font-semibold text-slate-950 transition hover:brightness-105 md:inline-flex"
+                  >
+                    <MapPin size={16} />
+                    Mening joylashuvim
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleGPSLocation}
+              className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-[22px] border border-white/10 bg-slate-950/66 text-[#ffcc33] shadow-lg backdrop-blur-xl transition hover:bg-slate-900/80 md:hidden"
+              title="Mening joylashuvim"
+            >
+              <MapPin size={18} />
+            </button>
+          </div>
+        </div>
+
+        {userLocation && activeRestaurant && routeInfo ? (
+          <div className="absolute right-4 top-28 z-[420] rounded-[24px] border border-white/10 bg-slate-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-xl sm:right-6 sm:top-6">
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              <Navigation size={16} className="text-[#ffcc33]" />
               {activeRestaurant.name}
             </div>
-            <div className="mt-1 text-xs text-slate-500 dark:text-slate-300">
+            <div className="mt-1 text-xs text-white/64">
               {`${routeInfo.distance} km - ${routeInfo.time} daqiqa`}
             </div>
           </div>
-        )}
-        
-        {/* GPS Button */}
-        <button 
-          onClick={handleGPSLocation}
-          className="absolute bottom-24 md:bottom-6 right-4 sm:right-6 z-[400] w-14 h-14 bg-white dark:bg-slate-800 text-primary rounded-full shadow-lg flex items-center justify-center hover:scale-110 active:scale-95 transition-transform border border-slate-100 dark:border-slate-700 hover:bg-primary hover:text-white"
-          title="Mening joylashuvim"
-        >
-           <MapPin size={24} />
-        </button>
-
-        {/* Shadow overlay gradient on desktop for map depth */}
-        <div className="hidden md:block absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-slate-900/10 to-transparent pointer-events-none z-[400]" />
+        ) : null}
       </div>
 
-      {/* Mobile View Toggle */}
-      <button 
-        onClick={() => setMobileView(mobileView === 'list' ? 'map' : 'list')}
-        className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[500] px-6 py-3.5 bg-primary text-white rounded-full font-bold shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform ios-safe-bottom"
+      <motion.section
+        drag={isDesktop ? false : 'y'}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.08}
+        onDragEnd={(_, info) => {
+          if (info.offset.y < -40) setSheetExpanded(true);
+          if (info.offset.y > 40) setSheetExpanded(false);
+        }}
+        animate={{
+          height: isDesktop ? 'calc(100dvh - 6rem)' : mobileSheetHeight,
+        }}
+        transition={{ type: 'spring', stiffness: 220, damping: 28 }}
+        className="absolute inset-x-0 bottom-0 z-[430] mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[34px] border border-white/10 bg-slate-950/78 shadow-[0_-20px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:max-w-xl md:left-6 md:top-24 md:mx-0 md:w-[430px] md:max-w-none md:rounded-[34px] lg:w-[460px]"
       >
-        {mobileView === 'list' ? <><MapIcon size={18}/> Xarita</> : <><List size={18}/> Ro'yxat</>}
-      </button>
-      
+        <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 pb-3 pt-3 sm:px-5">
+          <div className="min-w-0 flex-1">
+            <span className="mx-auto mb-2 block h-1.5 w-14 rounded-full bg-white/18 md:hidden" />
+            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-white/38">Yaqin joylar</p>
+            <h2 className="mt-1 text-lg font-semibold text-white">Restoranlar paneli</h2>
+          </div>
+          <div className="hidden items-center gap-2 md:flex">
+            <span className="rounded-full bg-white/[0.08] px-3 py-1 text-xs font-medium text-white/70">
+              {displayedRestaurants.length} ta
+            </span>
+            {activeFiltersCount ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc33] px-3 py-1 text-xs font-semibold text-slate-950">
+                <SlidersHorizontal size={12} />
+                {activeFiltersCount} filter
+              </span>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={() => setSheetExpanded((prev) => !prev)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white/[0.06] text-white/76 transition hover:bg-white/[0.12]"
+          >
+            <ChevronUp size={18} className={`transition-transform duration-300 ${sheetExpanded ? 'rotate-0' : 'rotate-180'}`} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 pb-5 pt-4 sm:px-5 ios-safe-bottom">
+          <FilterPanel
+            categoryOptions={categoryOptions}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleSelectCategory}
+            sortBy={sortBy}
+            setSortBy={setSortBy}
+            triggerGPS={handleGPSLocation}
+          />
+
+          <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-medium text-white/74">
+                {restaurantsLoading ? 'Joylar yuklanmoqda...' : `${displayedRestaurants.length} ta joy topildi`}
+              </span>
+              {categoriesLoading ? (
+                <span className="rounded-full bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white/60">
+                  Kategoriyalar yuklanmoqda...
+                </span>
+              ) : null}
+              {sortBy === 'nearest' ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc33] px-3 py-1 text-xs font-semibold text-slate-950">
+                  <MapPin size={12} />
+                  Sizga eng yaqinlar
+                </span>
+              ) : null}
+            </div>
+
+            {!showFallbackNotice && displayedRestaurants.length > 0 ? (
+              <div className="flex items-center gap-2 rounded-[22px] border border-white/8 bg-white/[0.05] px-3 py-2 text-xs font-medium text-white/64">
+                <Sparkles size={14} className="text-[#ffcc33]" />
+                Tanlangan filterlarga mos joylar ko'rsatilmoqda
+              </div>
+            ) : null}
+
+            {showFallbackNotice ? (
+              <div className="rounded-[22px] border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-200">
+                Backend vaqtincha ulanmagan, demo restoranlar ko'rsatilmoqda.
+              </div>
+            ) : null}
+
+            {restaurantsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((item) => (
+                  <div
+                    key={item}
+                    className="h-32 animate-pulse rounded-[28px] border border-white/8 bg-white/[0.05]"
+                  />
+                ))}
+              </div>
+            ) : displayedRestaurants.length ? (
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: { opacity: 1, transition: { staggerChildren: 0.06 } },
+                }}
+                className="space-y-3"
+              >
+                {displayedRestaurants.map((restaurant) => (
+                  <motion.div
+                    key={restaurant._id || restaurant.id}
+                    variants={{
+                      hidden: { opacity: 0, y: 14 },
+                      visible: { opacity: 1, y: 0 },
+                    }}
+                    onClick={() => {
+                      setMapCenter([restaurant.location.coordinates[1], restaurant.location.coordinates[0]]);
+                      setActiveRestaurantId(restaurant._id || restaurant.id);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <RestaurantCard restaurant={restaurant} compact />
+                  </motion.div>
+                ))}
+              </motion.div>
+            ) : (
+              <div className="rounded-[28px] border border-white/10 bg-white/[0.05] px-4 py-5 text-sm text-white/68">
+                Hozircha tanlangan filterlarga mos restoran topilmadi.
+              </div>
+            )}
+
+            {displayedPagination.pages > 1 ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <button
+                  disabled={displayedPagination.page === 1}
+                  onClick={() => setPagination({ ...displayedPagination, page: displayedPagination.page - 1 })}
+                  className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.12] disabled:opacity-40"
+                >
+                  Oldingi
+                </button>
+                <span className="text-sm font-semibold text-white/68">
+                  {displayedPagination.page} / {displayedPagination.pages}
+                </span>
+                <button
+                  disabled={displayedPagination.page === displayedPagination.pages}
+                  onClick={() => setPagination({ ...displayedPagination, page: displayedPagination.page + 1 })}
+                  className="rounded-full border border-white/10 bg-white/[0.06] px-4 py-2 text-sm font-medium text-white transition hover:bg-white/[0.12] disabled:opacity-40"
+                >
+                  Keyingi
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </motion.section>
     </div>
   );
 }
-

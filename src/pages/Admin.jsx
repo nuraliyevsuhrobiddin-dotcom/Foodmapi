@@ -1,13 +1,18 @@
 ﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Plus, Edit2, Trash2, MapPin, Loader2, Star, Clock } from 'lucide-react';
+import { Plus, Edit2, Trash2, MapPin, Loader2, Star, Clock, ClipboardList, Activity, CheckCircle2, XCircle } from 'lucide-react';
+import { useMemo } from 'react';
+import { Image as ImageIcon, Video, Upload, Check } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { toast } from 'react-hot-toast';
 import OrderDetailModal from '../components/OrderDetailModal';
 import { normalizeCategoryLabel } from '../utils/categoryUtils';
+import AdminHeader from '../components/admin/AdminHeader';
+import StatsGrid from '../components/admin/StatsGrid';
+import RestaurantCard from '../components/admin/RestaurantCard';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -26,7 +31,7 @@ const defaultFormData = {
   lng: '',
   image: '',
   rating: 1,
-  type: '',
+  categories: [],
   telegramChatId: '',
   workingHours: '09:00 - 23:00',
   menu: []
@@ -78,19 +83,19 @@ const formatAvailability = (isAvailable) => (isAvailable ? availabilityLabels.av
 const formatActivity = (isActive) => (isActive ? activityLabels.active : activityLabels.inactive);
 
 const statusClasses = {
-  pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300',
-  cooking: 'bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300',
-  delivering: 'bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300',
-  delivered: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+  pending: 'border border-white/10 bg-white/5 text-white/85',
+  confirmed: 'border border-white/10 bg-white/5 text-white/85',
+  cooking: 'border border-white/10 bg-white/5 text-white/85',
+  delivering: 'border border-white/10 bg-white/5 text-white/85',
+  delivered: 'border border-white/10 bg-white/5 text-white/85',
+  cancelled: 'border border-white/10 bg-white/5 text-white/85'
 };
 
 const paymentStatusClasses = {
-  unpaid: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
-  paid: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
-  failed: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
-  refunded: 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+  unpaid: 'border border-white/10 bg-white/5 text-white/85',
+  paid: 'border border-white/10 bg-white/5 text-white/85',
+  failed: 'border border-white/10 bg-white/5 text-white/85',
+  refunded: 'border border-white/10 bg-white/5 text-white/85',
 };
 
 const roleDashboardConfig = {
@@ -99,7 +104,7 @@ const roleDashboardConfig = {
     subtitle: "Marketplace, restoranlar va barcha buyurtmalarni bitta joydan boshqaring",
     orderTitle: 'Barcha buyurtmalar',
     orderDescription: "Tizim bo'ylab tushgan buyurtmalarni kuzating va operatsiyani boshqaring",
-    heroAccent: 'from-slate-900 via-slate-800 to-primary',
+    heroAccent: 'from-[#1e293b] to-[#0f172a]',
     badge: 'ADMIN',
   },
   restaurant: {
@@ -107,7 +112,7 @@ const roleDashboardConfig = {
     subtitle: "Oshxonaga tushgan buyurtmalarni tez ko'ring, tasdiqlang va tayyorlash oqimini boshqaring",
     orderTitle: 'Restoran buyurtmalari',
     orderDescription: "Sizga tegishli buyurtmalarni statuslar bo'yicha nazorat qiling",
-    heroAccent: 'from-orange-600 via-orange-500 to-amber-400',
+    heroAccent: 'from-[#1e293b] to-[#0f172a]',
     badge: 'RESTAURANT',
   },
   courier: {
@@ -115,7 +120,7 @@ const roleDashboardConfig = {
     subtitle: "Biriktirilgan yetkazmalarni tartib bilan olib chiqing va statuslarni real-time yangilang",
     orderTitle: 'Biriktirilgan yetkazmalar',
     orderDescription: "Yetkazib berishdagi buyurtmalarni boshqarish uchun ishchi panel",
-    heroAccent: 'from-violet-700 via-indigo-600 to-sky-500',
+    heroAccent: 'from-[#1e293b] to-[#0f172a]',
     badge: 'COURIER',
   },
 };
@@ -290,6 +295,13 @@ const normalizeCoordinateValue = (value) => {
 const isLatitudeValid = (value) => value >= -90 && value <= 90;
 const isLongitudeValid = (value) => value >= -180 && value <= 180;
 const workingHoursPattern = /^\d{2}:\d{2}\s*-\s*\d{2}:\d{2}$/;
+const categoryIconMap = {
+  Milliy: '🍲',
+  'Fast Food': '🍔',
+  Kafe: '☕',
+  Desert: '🍰',
+  Ichimliklar: '🥤',
+};
 
 const previewFallbackImage = 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4';
 
@@ -306,7 +318,7 @@ function LocationMarker({ position, setPosition }) {
 }
 
 export default function Admin() {
-  const { user, token, authLoading, refreshProfile } = useAuth();
+  const { user, token, authLoading, refreshProfile, logout } = useAuth();
   const canManageRestaurants = user?.role === 'admin';
   const canSeeOrders = ['admin', 'restaurant', 'courier'].includes(user?.role);
   const canAssignCouriers = ['admin', 'restaurant'].includes(user?.role);
@@ -319,6 +331,8 @@ export default function Admin() {
   const [auditLogs, setAuditLogs] = useState([]);
   const [promoCodes, setPromoCodes] = useState([]);
   const [categoryOptions, setCategoryOptions] = useState([]);
+  const [categorySearchTerm, setCategorySearchTerm] = useState('');
+  const [customCategoryInput, setCustomCategoryInput] = useState('');
   const [editingPromoId, setEditingPromoId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -349,6 +363,8 @@ export default function Admin() {
   const [editingRestaurantId, setEditingRestaurantId] = useState(null);
   const [uploadingFiles, setUploadingFiles] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
+  const [selectedCoverIndex, setSelectedCoverIndex] = useState(0);
+  const [isDragActive, setIsDragActive] = useState(false);
   const [galleryMode, setGalleryMode] = useState(defaultGalleryMode);
   const [formData, setFormData] = useState(defaultFormData);
   const [promoForm, setPromoForm] = useState({
@@ -382,8 +398,12 @@ export default function Admin() {
   const resetForm = () => {
     setFormData(defaultFormData);
     setSelectedFiles([]);
+    setSelectedCoverIndex(0);
+    setIsDragActive(false);
     setGalleryMode(defaultGalleryMode);
     setEditingRestaurantId(null);
+    setCategorySearchTerm('');
+    setCustomCategoryInput('');
     setShowForm(false);
   };
 
@@ -398,6 +418,7 @@ export default function Admin() {
   const handleEdit = (restaurant) => {
     setEditingRestaurantId(restaurant._id);
     setSelectedFiles([]);
+    setSelectedCoverIndex(0);
     setGalleryMode(defaultGalleryMode);
     setFormData({
       name: restaurant.name || '',
@@ -406,22 +427,111 @@ export default function Admin() {
       lng: restaurant.location?.coordinates?.[0] ?? '',
       image: restaurant.image || '',
       rating: restaurant.rating || 1,
-      type: restaurant.category?.[0] || '',
+      categories: (restaurant.category || []).map(normalizeCategoryLabel).filter(Boolean),
       telegramChatId: restaurant.telegramChatId || '',
       workingHours: restaurant.workingHours || '09:00 - 23:00',
       menu: Array.isArray(restaurant.menu) ? restaurant.menu.map((item) => ({
         name: item.name || '',
+        category: item.category || '',
         price: item.price || '',
         image: item.image || ''
       })) : []
     });
     setShowForm(true);
+    setCategorySearchTerm('');
+    setCustomCategoryInput('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const toggleRestaurantCategory = (category) => {
+    const normalizedCategory = normalizeCategoryLabel(category);
+    if (!normalizedCategory) return;
+
+    setFormData((current) => {
+      const hasCategory = current.categories.includes(normalizedCategory);
+      return {
+        ...current,
+        categories: hasCategory
+          ? current.categories.filter((item) => item !== normalizedCategory)
+          : [...current.categories, normalizedCategory],
+      };
+    });
+  };
+
+  const handleAddCustomCategory = () => {
+    const normalizedCategory = normalizeCategoryLabel(normalizeTextField(customCategoryInput));
+    if (!normalizedCategory) {
+      toast.error("Kategoriya nomini kiriting");
+      return;
+    }
+
+    setCategoryOptions((current) =>
+      current.includes(normalizedCategory) ? current : [...current, normalizedCategory]
+    );
+    setFormData((current) => ({
+      ...current,
+      categories: current.categories.includes(normalizedCategory)
+        ? current.categories
+        : [...current.categories, normalizedCategory],
+    }));
+    setCustomCategoryInput('');
+  };
+
+  const mediaPreviews = useMemo(
+    () =>
+      selectedFiles.map((file) => ({
+        file,
+        url: URL.createObjectURL(file),
+        isVideo: file.type.startsWith('video/'),
+      })),
+    [selectedFiles]
+  );
+
+  useEffect(() => {
+    return () => {
+      mediaPreviews.forEach((preview) => URL.revokeObjectURL(preview.url));
+    };
+  }, [mediaPreviews]);
+
+  const appendSelectedMedia = (incomingFiles) => {
+    const files = incomingFiles
+      .filter((file) => file.type.startsWith('image/') || file.type.startsWith('video/'))
+      .slice(0, 5);
+
+    if (files.length === 0) {
+      toast.error("Faqat rasm yoki video fayl tanlang");
+      return;
+    }
+
+    setSelectedFiles((current) => {
+      const merged = [...current, ...files].slice(0, 5);
+      if (current.length + files.length > 5) {
+        toast.error("Maksimum 5 ta media yuklash mumkin");
+      }
+      return merged;
+    });
+  };
+
+  const handleMediaChange = (event) => {
+    const selected = Array.from(event.target.files || []);
+    appendSelectedMedia(selected);
+    event.target.value = '';
+  };
+
+  const handleRemoveSelectedMedia = (indexToRemove) => {
+    setSelectedFiles((current) => current.filter((_, index) => index !== indexToRemove));
+    setSelectedCoverIndex((current) => (current > indexToRemove ? current - 1 : Math.max(0, Math.min(current, selectedFiles.length - 2))));
+  };
+
+  const handleMediaDrop = (event) => {
+    event.preventDefault();
+    setIsDragActive(false);
+    appendSelectedMedia(Array.from(event.dataTransfer.files || []));
   };
 
   // Taom qo'shish funksiyalari
   const addMenuItem = () => {
-    setFormData({ ...formData, menu: [...formData.menu, { name: '', price: '', image: '' }] });
+    setFormData({ ...formData, menu: [...formData.menu, { name: '', category: '', price: '', image: '' }] });
   };
   
   const updateMenuItem = (index, field, value) => {
@@ -1384,7 +1494,10 @@ export default function Admin() {
 
     const normalizedName = normalizeTextField(formData.name);
     const normalizedAddress = normalizeTextField(formData.address);
-    const normalizedType = normalizeCategoryLabel(normalizeTextField(formData.type));
+    const normalizedCategories = formData.categories
+      .map((category) => normalizeCategoryLabel(normalizeTextField(category)))
+      .filter(Boolean)
+      .filter((category, index, array) => array.indexOf(category) === index);
     const normalizedWorkingHours = normalizeTextField(formData.workingHours);
     const normalizedLat = normalizeCoordinateValue(formData.lat);
     const normalizedLng = normalizeCoordinateValue(formData.lng);
@@ -1399,8 +1512,8 @@ export default function Admin() {
       return;
     }
 
-    if (!normalizedType || normalizedType.length < 2) {
-      toast.error("Toifani tanlang");
+    if (normalizedCategories.length === 0) {
+      toast.error("Kamida bitta kategoriya tanlang");
       return;
     }
 
@@ -1443,7 +1556,7 @@ export default function Admin() {
     if (selectedFiles.length > 0) {
       const data = new FormData();
       for (let i = 0; i < selectedFiles.length; i++) {
-        data.append('image', selectedFiles[i]);
+        data.append('media', selectedFiles[i]);
       }
       try {
         const uploadRes = await fetch(`${API_URL}/api/upload`, {
@@ -1455,12 +1568,19 @@ export default function Admin() {
         if (!uploadRes.ok || !uploadData.success) {
           throw new Error(uploadData.message || "Rasmlarni yuklab bo'lmadi");
         }
-        if (uploadData.urls.length > 0) {
+        const uploadedMedia = uploadData.files || [];
+        const uploadedUrls = uploadedMedia.map((item) => item.url).filter(Boolean);
+
+        if (uploadedUrls.length > 0) {
           galleryUrls =
             editingRestaurantId && galleryMode === 'append'
-              ? [...galleryUrls, ...uploadData.urls]
-              : uploadData.urls;
-          if (!mainImageUrl) mainImageUrl = galleryUrls[0];
+              ? [...galleryUrls, ...uploadedUrls]
+              : uploadedUrls;
+
+          const preferredCover = uploadedMedia[selectedCoverIndex]?.url || uploadedUrls[0];
+          if (!mainImageUrl || selectedFiles.length > 0) {
+            mainImageUrl = preferredCover;
+          }
         }
       } catch (err) {
         console.error("Rasm yuklashda xatolik:", err);
@@ -1474,7 +1594,7 @@ export default function Admin() {
       ...formData,
       name: normalizedName,
       address: normalizedAddress,
-      type: normalizedType,
+      categories: normalizedCategories,
       telegramChatId: normalizeTextField(formData.telegramChatId),
       rating: normalizedRating,
       workingHours: normalizedWorkingHours,
@@ -1482,11 +1602,12 @@ export default function Admin() {
       lng: normalizedLng,
       menu: formData.menu.map((item) => ({
         name: normalizeTextField(item.name),
+        category: normalizeTextField(item.category || ''),
         image: item.image,
         price: normalizeMenuPriceValue(item.price),
       })),
       image: mainImageUrl || 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4',
-      category: [normalizedType],
+      category: normalizedCategories,
       gallery: galleryUrls
     };
 
@@ -1521,7 +1642,7 @@ export default function Admin() {
 
   if (authLoading) {
     return (
-      <div className="flex-1 bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+      <div className="flex flex-1 items-center justify-center bg-[radial-gradient(circle_at_top,_rgba(255,204,51,0.1),_transparent_18%),linear-gradient(180deg,#020617_0%,#0f172a_24%,#0f172a_100%)]">
         <Loader2 className="animate-spin text-primary" size={32} />
       </div>
     );
@@ -1531,80 +1652,73 @@ export default function Admin() {
     return <Navigate to="/" replace />;
   }
 
+  const mobileHeroStats = [
+    { label: 'Jami buyurtma', value: orderSummary.total, icon: ClipboardList, className: 'bg-white/5' },
+    { label: 'Jarayonda', value: orderSummary.inProgress, icon: Activity, className: 'bg-white/5' },
+    { label: 'Yetkazilgan', value: orderSummary.delivered, icon: CheckCircle2, className: 'bg-white/5' },
+    { label: 'Bekor qilingan', value: orderSummary.cancelled, icon: XCircle, className: 'bg-white/5' },
+  ];
+
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-900 overflow-y-auto p-3 sm:p-8">
-      <div className="max-w-7xl mx-auto space-y-5 sm:space-y-6 ios-safe-bottom">
-        <div className={`relative overflow-hidden rounded-[28px] bg-gradient-to-br ${dashboardConfig.heroAccent} p-5 sm:p-8 text-white shadow-xl`}>
+    <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(250,204,21,0.12),transparent_16%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,0.08),transparent_22%),linear-gradient(180deg,#020617_0%,#081120_22%,#0b1220_55%,#0f172a_100%)] p-3 sm:p-8">
+      {canManageRestaurants ? <AdminHeader user={user} onLogout={logout} /> : null}
+      <div className="mx-auto max-w-md space-y-5 sm:max-w-7xl sm:space-y-6 ios-safe-bottom">
+        <div className={`relative mx-1 overflow-hidden rounded-[28px] bg-gradient-to-br ${dashboardConfig.heroAccent} p-4 text-white shadow-[0_20px_60px_rgba(2,6,23,0.36)] sm:mx-0 sm:p-8`}>
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.24),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.18),transparent_30%)]" />
           <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-[0.22em]">
+            <div className="max-w-xl">
+              <div className="inline-flex items-center rounded-full bg-white/12 px-2.5 py-1 text-[11px] font-semibold tracking-[0.22em]">
                 {dashboardConfig.badge}
               </div>
-              <h1 className="mt-4 text-3xl font-black tracking-tight sm:text-4xl">
+              <h1 className="mt-3 text-lg font-semibold tracking-tight sm:text-4xl sm:font-black">
                 {dashboardConfig.title}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm text-white/80 sm:text-base">
+              <p className="mt-2 max-w-md text-sm leading-6 text-white/75 sm:mt-3 sm:max-w-2xl sm:text-base">
                 {dashboardConfig.subtitle}
               </p>
+              {canManageRestaurants && (
+                <button
+                  onClick={handleToggleForm}
+                  className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-950 transition-all duration-200 active:scale-[0.99] sm:mt-5 sm:w-auto"
+                >
+                  {showForm ? "Yopish" : <><Plus size={18} /> Yangi qo'shish</>}
+                </button>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 w-full lg:w-auto">
-              <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/70">Jami buyurtma</div>
-                <div className="mt-2 text-2xl font-bold">{orderSummary.total}</div>
-              </div>
-              <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/70">Jarayonda</div>
-                <div className="mt-2 text-2xl font-bold">{orderSummary.inProgress}</div>
-              </div>
-              <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/70">Yetkazilgan</div>
-                <div className="mt-2 text-2xl font-bold">{orderSummary.delivered}</div>
-              </div>
-              <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur">
-                <div className="text-[11px] font-medium uppercase tracking-wide text-white/70">Bekor qilingan</div>
-                <div className="mt-2 text-2xl font-bold">{orderSummary.cancelled}</div>
-              </div>
+            <div className="w-full lg:w-[520px]">
+              <StatsGrid items={mobileHeroStats} />
             </div>
           </div>
         </div>
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">
+            <h2 className="text-xl font-bold text-slate-100">
               {canManageRestaurants ? 'Marketplace boshqaruvi' : dashboardConfig.orderTitle}
             </h2>
-            <p className="text-slate-500">{dashboardConfig.orderDescription}</p>
+            <p className="text-slate-400">{dashboardConfig.orderDescription}</p>
           </div>
-          {canManageRestaurants && (
-            <button 
-              onClick={handleToggleForm}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-primary text-white font-medium rounded-2xl hover:bg-orange-600 transition-colors shadow-sm touch-target"
-            >
-              {showForm ? "Yopish" : <><Plus size={18} /> Yangi Qo'shish</>}
-            </button>
-          )}
         </div>
 
         {canManageRestaurants && (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px_220px] gap-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <label className="text-xs font-medium text-slate-500 block mb-2">Qidiruv</label>
+            <div className="rounded-[28px] border border-white/10 bg-slate-950/55 p-4 shadow-[0_14px_34px_rgba(2,6,23,0.34)] backdrop-blur-xl">
+              <label className="text-xs font-medium text-slate-400 block mb-2">Qidiruv</label>
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Nomi, manzili yoki toifa bo'yicha qidiring"
-                className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] p-3.5 text-white outline-none placeholder:text-slate-500 focus:border-primary"
               />
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <div className="text-xs font-medium text-slate-500">Jami restoranlar</div>
-              <div className="mt-2 text-3xl font-bold text-slate-800 dark:text-white">{restaurants.length}</div>
+            <div className="rounded-[28px] border border-white/10 bg-slate-950/55 p-4 shadow-[0_14px_34px_rgba(2,6,23,0.34)] backdrop-blur-xl">
+              <div className="text-xs font-medium text-slate-400">Jami restoranlar</div>
+              <div className="mt-2 text-3xl font-bold text-white">{restaurants.length}</div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
-              <div className="text-xs font-medium text-slate-500">Qidiruv natijasi</div>
-              <div className="mt-2 text-3xl font-bold text-slate-800 dark:text-white">{filteredRestaurants.length}</div>
+            <div className="rounded-[28px] border border-white/10 bg-slate-950/55 p-4 shadow-[0_14px_34px_rgba(2,6,23,0.34)] backdrop-blur-xl">
+              <div className="text-xs font-medium text-slate-400">Qidiruv natijasi</div>
+              <div className="mt-2 text-3xl font-bold text-white">{filteredRestaurants.length}</div>
             </div>
           </div>
         )}
@@ -1638,18 +1752,18 @@ export default function Admin() {
         </div>
 
         {canManageRestaurants && showForm && (
-          <div className="bg-white dark:bg-slate-800 p-4 sm:p-6 rounded-[28px] shadow-sm border border-slate-200 dark:border-slate-700">
-            <h2 className="text-lg font-bold mb-4">
+          <div className="rounded-[28px] border border-white/10 bg-slate-950/70 p-4 shadow-[0_20px_50px_rgba(2,6,23,0.34)] backdrop-blur-xl sm:p-6">
+            <h2 className="mb-4 text-lg font-bold text-white">
               {editingRestaurantId ? "Restoranni tahrirlash" : "Yangi restoran qo'shish"}
             </h2>
             <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-500">Nomi</label>
-                <input required minLength={2} type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary" />
+                <label className="text-xs font-medium text-slate-400">Nomi</label>
+                <input required minLength={2} type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full rounded-2xl border border-white/10 bg-white/[0.05] p-3.5 text-white outline-none focus:border-primary" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-500">Manzil</label>
-                <input required minLength={5} type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary" />
+                <label className="text-xs font-medium text-slate-400">Manzil</label>
+                <input required minLength={5} type="text" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full rounded-2xl border border-white/10 bg-white/[0.05] p-3.5 text-white outline-none focus:border-primary" />
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-500">Lat (Kenglik)</label>
@@ -1682,21 +1796,68 @@ export default function Admin() {
                 <label className="text-xs font-medium text-slate-500">Rasm URL (Yoki fayl tanlang)</label>
                 <input type="url" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary" />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-500">Toifa</label>
-                <select
-                  required
-                  value={formData.type}
-                  onChange={e => setFormData({...formData, type: e.target.value})}
-                  className="w-full p-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary"
-                >
-                  <option value="">{categoriesLoading ? 'Toifalar yuklanmoqda...' : 'Toifani tanlang'}</option>
-                  {categoryOptions.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3 md:col-span-2">
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-xs font-medium text-slate-400">Kategoriyalar</label>
+                  <span className="text-[11px] text-slate-500">
+                    {formData.categories.length ? `${formData.categories.length} ta tanlandi` : 'Tanlanmagan'}
+                  </span>
+                </div>
+                <input
+                  type="text"
+                  value={categorySearchTerm}
+                  onChange={(e) => setCategorySearchTerm(e.target.value)}
+                  placeholder="Kategoriya qidirish"
+                  className="w-full rounded-2xl border border-white/10 bg-white/[0.05] p-3.5 text-white outline-none placeholder:text-slate-500 focus:border-white/30"
+                />
+                <div className="flex flex-wrap gap-2">
+                  {categoryOptions
+                    .filter((category) =>
+                      category.toLowerCase().includes(categorySearchTerm.trim().toLowerCase())
+                    )
+                    .map((category) => {
+                      const isActive = formData.categories.includes(category);
+                      return (
+                        <button
+                          key={category}
+                          type="button"
+                          onClick={() => toggleRestaurantCategory(category)}
+                          className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-all duration-200 active:scale-[0.98] ${
+                            isActive
+                              ? 'bg-white text-black'
+                              : 'border border-white/10 bg-white/10 text-white hover:bg-white/15'
+                          }`}
+                        >
+                          <span>{categoryIconMap[category] || '🏷️'}</span>
+                          <span>{category}</span>
+                        </button>
+                      );
+                    })}
+                  <button
+                    type="button"
+                    onClick={handleAddCustomCategory}
+                    className="inline-flex items-center gap-2 rounded-full border border-dashed border-white/20 bg-white/[0.04] px-3 py-1.5 text-sm text-white/80 transition-all duration-200 hover:bg-white/10 active:scale-[0.98]"
+                  >
+                    <span>＋</span>
+                    <span>Boshqa</span>
+                  </button>
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <input
+                    type="text"
+                    value={customCategoryInput}
+                    onChange={(e) => setCustomCategoryInput(e.target.value)}
+                    placeholder="Yangi kategoriya qo'shing"
+                    className="w-full rounded-2xl border border-white/10 bg-white/[0.05] p-3.5 text-white outline-none placeholder:text-slate-500 focus:border-white/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAddCustomCategory}
+                    className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black transition-all duration-200 active:scale-[0.98] sm:w-auto"
+                  >
+                    Boshqa +
+                  </button>
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-xs font-medium text-slate-500">Reyting</label>
@@ -1731,9 +1892,84 @@ export default function Admin() {
               </div>
               <div className="space-y-1 md:col-span-2">
                 <label className="text-xs font-medium text-slate-500">
-                  {editingRestaurantId ? "Galereya rasmlari" : "Rasmlar Galereyasi (bir nechta tanlash mumkin)"}
+                  {editingRestaurantId ? "Galereya media fayllari" : "Media Galereyasi (rasm + video)"}
                 </label>
-                <input type="file" multiple accept="image/*" onChange={(e) => setSelectedFiles(e.target.files)} className="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary" />
+                <div
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setIsDragActive(true);
+                  }}
+                  onDragLeave={() => setIsDragActive(false)}
+                  onDrop={handleMediaDrop}
+                  className={`rounded-[24px] border border-dashed p-4 transition-all duration-200 ${
+                    isDragActive
+                      ? 'border-white/30 bg-white/10'
+                      : 'border-white/10 bg-white/[0.04]'
+                  }`}
+                >
+                  <label className="flex cursor-pointer flex-col items-center justify-center gap-3 text-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 text-white">
+                      <Upload size={20} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold text-white">Rasm yoki video yuklang</div>
+                      <div className="mt-1 text-xs text-slate-400">Maksimum 5 ta fayl. Image + Video qo'llab-quvvatlanadi.</div>
+                    </div>
+                    <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-white">
+                      Media tanlash
+                    </div>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*"
+                      onChange={handleMediaChange}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                {mediaPreviews.length > 0 && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                    {mediaPreviews.map((preview, index) => (
+                      <div
+                        key={`${preview.file.name}-${index}`}
+                        className="rounded-2xl border border-white/10 bg-white/[0.05] p-2"
+                      >
+                        <div className="relative overflow-hidden rounded-xl bg-black/20">
+                          {preview.isVideo ? (
+                            <video src={preview.url} className="h-24 w-full rounded-xl object-cover" controls />
+                          ) : (
+                            <img src={preview.url} alt={preview.file.name} className="h-24 w-full rounded-xl object-cover" />
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSelectedMedia(index)}
+                            className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white"
+                          >
+                            <XCircle size={14} />
+                          </button>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                            {preview.isVideo ? <Video size={12} /> : <ImageIcon size={12} />}
+                            <span className="truncate">{preview.file.name}</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCoverIndex(index)}
+                          className={`mt-2 inline-flex w-full items-center justify-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-200 ${
+                            selectedCoverIndex === index
+                              ? 'bg-white text-black'
+                              : 'border border-white/10 bg-white/10 text-white'
+                          }`}
+                        >
+                          {selectedCoverIndex === index ? <Check size={12} /> : null}
+                          {selectedCoverIndex === index ? 'Cover tanlandi' : 'Cover qilish'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {editingRestaurantId && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
                     <button
@@ -1781,14 +2017,19 @@ export default function Admin() {
                 ) : (
                   <div className="space-y-3">
                     {formData.menu.map((item, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
-                        <input required type="text" placeholder="Taom nomi (Masalan: Osh)" value={item.name} onChange={e => updateMenuItem(index, 'name', e.target.value)} className="flex-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
-                        <input required type="text" inputMode="numeric" pattern="[0-9\\s,.-]+" placeholder="Narxi (Masalan: 25 000)" value={item.price} onChange={e => updateMenuItem(index, 'price', e.target.value)} className="w-full sm:w-32 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
-                        <input type="url" placeholder="Taom rasmi (URL)" value={item.image} onChange={e => updateMenuItem(index, 'image', e.target.value)} className="flex-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
-                        
-                        <button type="button" onClick={() => removeMenuItem(index)} className="w-full sm:w-auto mt-2 sm:mt-0 p-3 text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-2xl transition-colors flex items-center justify-center touch-target">
-                          <Trash2 size={16} />
-                        </button>
+                      <div key={index} className="flex flex-col gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl relative">
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                          <input required type="text" placeholder="Taom nomi (Masalan: Osh)" value={item.name} onChange={e => updateMenuItem(index, 'name', e.target.value)} className="flex-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
+                          <input type="text" placeholder="Kategoriya (Masalan: Asosiy taomlar)" value={item.category || ''} onChange={e => updateMenuItem(index, 'category', e.target.value)} className="flex-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
+                        </div>
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[140px_minmax(0,1fr)_auto]">
+                          <input required type="text" inputMode="numeric" pattern="[0-9\\s,.-]+" placeholder="Narxi (Masalan: 25 000)" value={item.price} onChange={e => updateMenuItem(index, 'price', e.target.value)} className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
+                          <input type="url" placeholder="Taom rasmi (URL)" value={item.image} onChange={e => updateMenuItem(index, 'image', e.target.value)} className="flex-1 p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:border-primary" />
+
+                          <button type="button" onClick={() => removeMenuItem(index)} className="w-full sm:w-auto p-3 text-red-500 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-2xl transition-colors flex items-center justify-center touch-target">
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1834,7 +2075,7 @@ export default function Admin() {
                       </span>
                     </div>
                     <div className="absolute bottom-4 left-4 rounded-full bg-primary/95 px-3 py-1.5 text-xs font-semibold text-white shadow-lg">
-                      {formData.type || 'Toifa tanlanmagan'}
+                      {formData.categories.length ? formData.categories.join(', ') : 'Toifa tanlanmagan'}
                     </div>
                   </div>
 
@@ -1888,10 +2129,29 @@ export default function Admin() {
         )}
 
         {canManageRestaurants && loading ? (
-           <div className="flex justify-center p-12"><Loader2 className="animate-spin text-primary" size={32} /></div>
+           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+             {Array.from({ length: 4 }, (_, index) => (
+               <div key={index} className="h-36 animate-pulse rounded-2xl border border-white/10 bg-white/[0.06]" />
+             ))}
+           </div>
         ) : canManageRestaurants ? (
           <div className="bg-white dark:bg-slate-800 rounded-[28px] shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
-            <div className="overflow-x-auto no-scrollbar">
+            <div className="space-y-3 p-3 sm:hidden">
+              {filteredRestaurants.map((restaurant) => (
+                <RestaurantCard
+                  key={restaurant._id}
+                  restaurant={restaurant}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                />
+              ))}
+              {filteredRestaurants.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-slate-500">
+                  {restaurants.length === 0 ? "Hech qanday ma'lumot yo'q" : "Qidiruv bo'yicha restoran topilmadi"}
+                </div>
+              )}
+            </div>
+            <div className="hidden overflow-x-auto no-scrollbar sm:block">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
@@ -1951,7 +2211,7 @@ export default function Admin() {
 
         {canManageRestaurants && (
           <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-slate-800 dark:text-white">Foydalanuvchi tahlili</h2>
@@ -1978,7 +2238,7 @@ export default function Admin() {
                 </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Rollar taqsimoti</h3>
                 <p className="text-sm text-slate-500">Marketplace rollari bo'yicha taqsimot</p>
@@ -2009,7 +2269,7 @@ export default function Admin() {
         )}
 
         {canManageRestaurants && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Foydalanuvchi o'sishi</h3>
@@ -2150,7 +2410,111 @@ export default function Admin() {
                 <Loader2 className="animate-spin text-primary" size={28} />
               </div>
             ) : (
-              <div className="overflow-x-auto no-scrollbar">
+              <>
+                <div className="space-y-3 p-3 sm:hidden">
+                  {filteredUsers.map((listUser) => (
+                    <div
+                      key={listUser._id}
+                      className="rounded-2xl border border-white/10 bg-white/[0.05] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.18)] backdrop-blur-xl"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-medium text-slate-800 dark:text-slate-200">{listUser.username}</div>
+                          <div className="mt-1 text-sm text-slate-500">{listUser.email}</div>
+                          <div className="mt-1 text-xs text-slate-500">{listUser.phone || "yo'q"}</div>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                          {formatRole(listUser.role)}
+                        </span>
+                      </div>
+
+                      <div className="mt-4 space-y-3">
+                        <div className="grid grid-cols-1 gap-3">
+                          <select
+                            value={listUser.role}
+                            disabled={updatingUserId === listUser._id}
+                            onChange={(e) => handleAdminUserUpdate(listUser._id, { role: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 outline-none focus:border-primary"
+                          >
+                            {roleOptions.map((role) => (
+                              <option key={role} value={role}>
+                                {formatRole(role)}
+                              </option>
+                            ))}
+                          </select>
+
+                          {listUser.role === 'restaurant' ? (
+                            <select
+                              value={listUser.restaurantId || ''}
+                              disabled={updatingUserId === listUser._id}
+                              onChange={(e) => handleAdminUserUpdate(listUser._id, { restaurantId: e.target.value || null })}
+                              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2.5 outline-none focus:border-primary"
+                            >
+                              <option value="">Restoran tanlang</option>
+                              {restaurants.map((restaurant) => (
+                                <option key={restaurant._id} value={restaurant._id}>
+                                  {restaurant.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : null}
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              listUser.isActive
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+                            }`}
+                          >
+                            {formatActivity(listUser.isActive)}
+                          </span>
+                          {listUser.role === 'courier' ? (
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                                listUser.isAvailable
+                                  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+                                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                              }`}
+                            >
+                              {formatAvailability(listUser.isAvailable)}
+                            </span>
+                          ) : null}
+                        </div>
+
+                        <div className="flex flex-col gap-2">
+                          {listUser.role === 'courier' ? (
+                            <button
+                              type="button"
+                              disabled={updatingUserId === listUser._id}
+                              onClick={() => handleAdminUserUpdate(listUser._id, { isAvailable: !listUser.isAvailable })}
+                              className="rounded-xl border border-slate-200 dark:border-slate-700 px-3 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 disabled:opacity-60"
+                            >
+                              {listUser.isAvailable ? "Band qilish" : "Bo'sh qilish"}
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            disabled={updatingUserId === listUser._id || listUser._id === user._id}
+                            onClick={() => handleAdminDeleteUser(listUser._id)}
+                            className="rounded-xl border border-rose-200 px-3 py-2.5 text-sm font-medium text-rose-700 dark:border-rose-800 dark:text-rose-300 disabled:opacity-60"
+                          >
+                            O'chirish
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredUsers.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center text-slate-500">
+                      Qidiruv bo'yicha foydalanuvchi topilmadi
+                    </div>
+                  )}
+                </div>
+
+              <div className="hidden overflow-x-auto no-scrollbar sm:block">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
@@ -2275,12 +2639,13 @@ export default function Admin() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         )}
 
         {canManageRestaurants && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.06] shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white">Audit log</h2>
@@ -2328,7 +2693,7 @@ export default function Admin() {
         )}
 
         {canManageRestaurants && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="overflow-hidden rounded-[30px] border border-white/10 bg-white/[0.06] shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-800 dark:text-white">Promo management</h2>
@@ -2650,11 +3015,11 @@ export default function Admin() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
             <div className="text-xs font-medium text-slate-500">Jami buyurtmalar</div>
             <div className="mt-2 text-3xl font-bold text-slate-800 dark:text-white">{orderSummary.total}</div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
             <div className="text-xs font-medium text-slate-500">
               {user.role === 'courier' ? 'Yetkazilayotganlar' : 'Kutilayotganlar'}
             </div>
@@ -2664,7 +3029,7 @@ export default function Admin() {
                 : orderSummary.pending}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
             <div className="text-xs font-medium text-slate-500">
               {user.role === 'restaurant' ? 'Pishirilayotganlar' : 'Yetkazilganlar'}
             </div>
@@ -2674,7 +3039,7 @@ export default function Admin() {
                 : orderSummary.delivered}
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+          <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
             <div className="text-xs font-medium text-slate-500">
               {user.role === 'courier' ? 'Bugungi topshiriq' : 'Shoshilinchlar'}
             </div>
@@ -2688,17 +3053,17 @@ export default function Admin() {
 
         {user.role !== 'courier' && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
               <div className="text-xs font-medium text-slate-500">To'langan buyurtmalar</div>
               <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-300">{orderSummary.paid}</div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
               <div className="text-xs font-medium text-slate-500">To'lovga tushgan summa</div>
               <div className="mt-2 text-3xl font-bold text-slate-800 dark:text-white">
                 {financialSummary.grossRevenue.toLocaleString()} UZS
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4">
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.06] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.2)] backdrop-blur-xl">
               <div className="text-xs font-medium text-slate-500">Refund qilingan summa</div>
               <div className="mt-2 text-3xl font-bold text-rose-600 dark:text-rose-300">
                 {financialSummary.refundedAmount.toLocaleString()} UZS
@@ -2792,7 +3157,7 @@ export default function Admin() {
         )}
 
         <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">Haftalik trend</h3>
@@ -2822,7 +3187,7 @@ export default function Admin() {
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <h3 className="text-lg font-bold text-slate-800 dark:text-white">Statuslar taqsimoti</h3>
             <p className="text-sm text-slate-500">Joriy scope ichidagi buyurtmalar taqsimoti</p>
             <div className="mt-5 space-y-4">
@@ -2851,7 +3216,7 @@ export default function Admin() {
         </div>
 
         {(canManageRestaurants || user.role === 'restaurant') && restaurantPerformance.length > 0 && (
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+          <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 dark:text-white">
@@ -2893,7 +3258,7 @@ export default function Admin() {
 
         {!canManageRestaurants && (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Ish oqimi</div>
               <div className="mt-3 grid gap-3 sm:grid-cols-3">
                 {user.role === 'restaurant' && (
@@ -2942,7 +3307,7 @@ export default function Admin() {
                 )}
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+            <div className="rounded-[30px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl">
               <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Tezkor eslatma</div>
               <ul className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
                 {user.role === 'restaurant' && (
@@ -2964,7 +3329,7 @@ export default function Admin() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.06] shadow-[0_20px_60px_rgba(15,23,42,0.28)] backdrop-blur-xl">
           <div className="p-5 border-b border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <h2 className="text-lg font-bold text-slate-800 dark:text-white">{dashboardConfig.orderTitle}</h2>
@@ -3274,6 +3639,16 @@ export default function Admin() {
           formatAvailability={formatAvailability}
         />
       </div>
+
+      {canManageRestaurants ? (
+        <button
+          type="button"
+          onClick={handleToggleForm}
+          className="fixed bottom-5 right-5 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-[#ffcc33] text-slate-950 shadow-[0_20px_40px_rgba(255,204,51,0.28)] sm:hidden ios-safe-bottom"
+        >
+          <Plus size={22} />
+        </button>
+      ) : null}
     </div>
   );
 }

@@ -12,9 +12,9 @@ export const MOCK_RESTAURANTS = [
     hours: '08:00 - 23:00',
     coordinates: [38.8615, 65.7854], // Qarshi center
     menu: [
-      { id: 'm1', name: 'Tandir go\'sht', price: '120,000 so\'m', image: 'https://images.unsplash.com/photo-1603099507971-55db29a39f60?w=300&h=300&fit=crop' },
-      { id: 'm2', name: 'Qashqadaryo somsa', price: '15,000 so\'m', image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=300&h=300&fit=crop' },
-      { id: 'm3', name: 'Moshxo\'rda', price: '30,000 so\'m', image: 'https://plus.unsplash.com/premium_photo-1663852297801-4475510655d9?w=300&h=300&fit=crop' }
+      { id: 'm1', name: 'Tandir go\'sht', price: '120,000 so\'m', category: 'Asosiy taomlar', image: 'https://images.unsplash.com/photo-1603099507971-55db29a39f60?w=300&h=300&fit=crop' },
+      { id: 'm2', name: 'Qashqadaryo somsa', price: '15,000 so\'m', category: 'Pishiriqlar', image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=300&h=300&fit=crop' },
+      { id: 'm3', name: 'Moshxo\'rda', price: '30,000 so\'m', category: 'Sho\'rvalar', image: 'https://plus.unsplash.com/premium_photo-1663852297801-4475510655d9?w=300&h=300&fit=crop' }
     ]
   },
   {
@@ -30,8 +30,8 @@ export const MOCK_RESTAURANTS = [
     hours: '09:00 - 22:00',
     coordinates: [38.8650, 65.7900],
     menu: [
-      { id: 'm4', name: 'Latte', price: '25,000 so\'m', image: 'https://images.unsplash.com/photo-1510594247504-20d0f5077cc2?w=300&h=300&fit=crop' },
-      { id: 'm5', name: 'Cheesecake', price: '35,000 so\'m', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&h=300&fit=crop' }
+      { id: 'm4', name: 'Latte', price: '25,000 so\'m', category: 'Qahvalar', image: 'https://images.unsplash.com/photo-1510594247504-20d0f5077cc2?w=300&h=300&fit=crop' },
+      { id: 'm5', name: 'Cheesecake', price: '35,000 so\'m', category: 'Desertlar', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&h=300&fit=crop' }
     ]
   },
   {
@@ -47,9 +47,9 @@ export const MOCK_RESTAURANTS = [
     hours: '10:00 - 02:00',
     coordinates: [38.8590, 65.7820],
     menu: [
-      { id: 'm6', name: 'Cheeseburger', price: '35,000 so\'m', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=300&fit=crop' },
-      { id: 'm7', name: 'Fri kartoshka', price: '15,000 so\'m', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&h=300&fit=crop' },
-      { id: 'm8', name: 'Coca Cola', price: '10,000 so\'m', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300&h=300&fit=crop' }
+      { id: 'm6', name: 'Cheeseburger', price: '35,000 so\'m', category: 'Burgerlar', image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=300&h=300&fit=crop' },
+      { id: 'm7', name: 'Fri kartoshka', price: '15,000 so\'m', category: 'Garnirlar', image: 'https://images.unsplash.com/photo-1576107232684-1279f390859f?w=300&h=300&fit=crop' },
+      { id: 'm8', name: 'Coca Cola', price: '10,000 so\'m', category: 'Ichimliklar', image: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=300&h=300&fit=crop' }
     ]
   },
   {
@@ -65,8 +65,8 @@ export const MOCK_RESTAURANTS = [
     hours: '11:00 - 23:00',
     coordinates: [38.8700, 65.7750],
     menu: [
-      { id: 'm9', name: 'Osh', price: '45,000 so\'m', image: 'https://images.unsplash.com/photo-1528659101037-77bb6cb1eeb4?w=300&h=300&fit=crop' },
-      { id: 'm10', name: 'Shashlik assorti', price: '90,000 so\'m', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&h=300&fit=crop' }
+      { id: 'm9', name: 'Osh', price: '45,000 so\'m', category: 'Asosiy taomlar', image: 'https://images.unsplash.com/photo-1528659101037-77bb6cb1eeb4?w=300&h=300&fit=crop' },
+      { id: 'm10', name: 'Shashlik assorti', price: '90,000 so\'m', category: 'Kaboblar', image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=300&h=300&fit=crop' }
     ]
   }
 ];

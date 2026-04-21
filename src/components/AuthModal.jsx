@@ -50,7 +50,7 @@ export default function AuthModal() {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl p-5 sm:p-8 overflow-hidden ios-safe-bottom"
+          className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl p-5 sm:p-8 overflow-hidden ios-safe-bottom"
         >
           <button 
             onClick={() => setIsAuthModalOpen(false)}

@@ -21,6 +21,7 @@ const normalizeMenuItem = (item = {}) => {
 
   return {
     ...item,
+    category: String(item.category || '').trim(),
     price: parsedPrice !== null ? String(parsedPrice) : item.price,
   };
 };

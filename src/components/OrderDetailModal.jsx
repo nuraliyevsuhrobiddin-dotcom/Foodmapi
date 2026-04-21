@@ -116,21 +116,21 @@ export default function OrderDetailModal({
   return (
     <div className="fixed inset-0 z-[120] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div
-        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950/72 backdrop-blur-md"
         onClick={onClose}
       />
-      <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900 ios-safe-bottom-lg">
-        <div className="sticky top-0 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 py-4 backdrop-blur dark:border-slate-700 dark:bg-slate-900/95">
+      <div className="relative w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-[28px] sm:rounded-[32px] border border-white/10 bg-slate-950/88 shadow-[0_24px_80px_rgba(15,23,42,0.5)] backdrop-blur-2xl ios-safe-bottom-lg">
+        <div className="sticky top-0 flex items-center justify-between border-b border-white/10 bg-slate-950/92 px-4 py-4 backdrop-blur sm:px-6">
           <div>
-            <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">Buyurtma tafsiloti</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className="text-lg sm:text-xl font-bold text-white">Buyurtma tafsiloti</h3>
+            <p className="text-sm text-white/50">
               {selectedOrder.restaurant?.name || "Noma'lum restoran"}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="touch-target flex items-center justify-center rounded-2xl bg-slate-100 text-slate-500 hover:text-slate-900 dark:bg-slate-800 dark:hover:text-white"
+            className="touch-target flex items-center justify-center rounded-2xl bg-white/[0.08] text-white/70 transition hover:bg-white/[0.12] hover:text-white"
           >
             <X size={18} />
           </button>

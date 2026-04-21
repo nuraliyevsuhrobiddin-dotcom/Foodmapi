@@ -3,6 +3,7 @@ const { parseMenuPrice } = require('../utils/menuPricing');
 
 const menuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
+  category: { type: String, trim: true, default: '' },
   price: {
     type: String,
     required: true,

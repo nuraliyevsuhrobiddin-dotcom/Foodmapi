@@ -14,7 +14,21 @@ const categoryAliasMap = {
 
 export const normalizeCategoryLabel = (value) => {
   const normalized = String(value || '').trim().toLowerCase();
-  return categoryAliasMap[normalized] || String(value || '').trim();
+  if (!normalized) return '';
+  if (categoryAliasMap[normalized]) return categoryAliasMap[normalized];
+
+  if (normalized.includes('fast')) return 'Fast Food';
+  if (normalized.includes('milliy') || normalized.includes('national')) return 'Milliy';
+  if (
+    normalized.includes('kafe') ||
+    normalized.includes('cafe') ||
+    normalized.includes('coffee') ||
+    normalized.includes('cofe')
+  ) {
+    return 'Kafe';
+  }
+
+  return String(value || '').trim();
 };
 
 export const normalizeCategoryList = (categories = []) =>

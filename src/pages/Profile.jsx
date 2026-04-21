@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import { User, Mail, Shield, ShoppingBag, Heart, Loader2, Bell, MapPin, X } from 'lucide-react';
+import { User, Mail, Shield, ShoppingBag, Heart, Loader2, Bell, MapPin, X, ChevronRight, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import FormField from '../components/FormField';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -280,82 +281,83 @@ export default function Profile() {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 dark:bg-slate-900 overflow-y-auto p-3 sm:p-8">
-      <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 ios-safe-bottom">
+    <div className="flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(255,204,51,0.09),_transparent_18%),linear-gradient(180deg,#020617_0%,#0f172a_24%,#0f172a_100%)] px-3 py-4 sm:px-6 sm:py-8">
+      <div className="mx-auto max-w-5xl space-y-6 sm:space-y-8 ios-safe-bottom">
         {/* Profile Card */}
-        <div className="bg-white dark:bg-slate-800 rounded-[28px] p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col md:flex-row items-center gap-5 sm:gap-6">
-          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:p-6">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center">
+          <div className="h-20 w-20 shrink-0 rounded-full bg-[#ffcc33]/12 flex items-center justify-center text-[#ffcc33] ring-1 ring-[#ffcc33]/20 sm:h-24 sm:w-24">
             <User size={48} />
           </div>
-          <div className="flex-1 text-center md:text-left space-y-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white">{user.username}</h1>
-            <div className="flex flex-wrap justify-center md:justify-start gap-4 text-sm text-slate-500">
+          <div className="flex-1 text-center md:text-left space-y-2">
+            <div className="inline-flex rounded-full bg-white/[0.08] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-white/40">
+              FoodMap account
+            </div>
+            <h1 className="text-2xl font-bold text-white sm:text-3xl">{user.username}</h1>
+            <div className="flex flex-wrap justify-center gap-4 text-sm text-white/55 md:justify-start">
               <span className="flex items-center gap-1"><Mail size={14}/> {user.email}</span>
-              <span className="flex items-center gap-1 font-medium text-primary"><Shield size={14}/> {roleLabels[user.role] || 'Foydalanuvchi'}</span>
+              <span className="flex items-center gap-1 font-medium text-[#ffcc33]"><Shield size={14}/> {roleLabels[user.role] || 'Foydalanuvchi'}</span>
             </div>
           </div>
           <button 
             onClick={logout}
-            className="w-full md:w-auto px-6 py-3 bg-red-50 text-red-600 font-medium rounded-2xl hover:bg-red-100 transition-colors touch-target"
+            className="w-full md:w-auto rounded-2xl border border-red-400/20 bg-red-500/12 px-6 py-3 font-medium text-red-200 transition-colors hover:bg-red-500/18 touch-target"
           >
             Chiqish
           </button>
+          </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-[28px] p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl sm:p-6">
           <div className="flex items-center justify-between gap-4 mb-5">
             <div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-white">Profil ma'lumotlari</h2>
-              <p className="text-sm text-slate-500">Telefon va aloqa ma'lumotlarini shu yerdan yangilang</p>
+              <h2 className="text-xl font-bold text-white">Profil ma'lumotlari</h2>
+              <p className="text-sm text-white/52">Telefon va aloqa ma'lumotlarini shu yerdan yangilang</p>
             </div>
           </div>
 
           <form onSubmit={handleProfileSave} className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Ism</label>
+            <FormField label="Ism">
               <input
                 type="text"
                 value={profileForm.username}
                 onChange={(e) => setProfileForm((prev) => ({ ...prev, username: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Email</label>
+            </FormField>
+            <FormField label="Email">
               <input
                 type="email"
                 value={profileForm.email}
                 onChange={(e) => setProfileForm((prev) => ({ ...prev, email: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Telefon</label>
+            </FormField>
+            <FormField label="Telefon">
               <input
                 type="tel"
                 value={profileForm.phone}
                 onChange={(e) => setProfileForm((prev) => ({ ...prev, phone: e.target.value }))}
                 placeholder="+998 90 123 45 67"
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
+            </FormField>
             {user.role === 'courier' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Transport turi</label>
+              <FormField label="Transport turi">
                 <input
                   type="text"
                   value={profileForm.vehicleType}
                   onChange={(e) => setProfileForm((prev) => ({ ...prev, vehicleType: e.target.value }))}
                   placeholder="Masalan: scooter, bike, car"
-                  className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                  className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
                 />
-              </div>
+              </FormField>
             )}
             <div className={`${user.role === 'courier' ? 'md:col-span-4' : 'md:col-span-3'} flex justify-stretch md:justify-end`}>
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="w-full md:w-auto rounded-2xl bg-primary px-5 py-3.5 font-semibold text-white shadow-lg shadow-primary/20 transition-colors hover:bg-orange-600 disabled:opacity-60 touch-target"
+                className="w-full md:w-auto rounded-2xl bg-[#ffcc33] px-5 py-3.5 font-semibold text-slate-950 shadow-[0_18px_40px_rgba(255,204,51,0.2)] transition hover:brightness-105 disabled:opacity-60 touch-target"
               >
                 {savingProfile ? "Saqlanmoqda..." : "Profilni saqlash"}
               </button>
@@ -364,11 +366,11 @@ export default function Profile() {
         </div>
 
         {user.role === 'courier' && (
-          <div className="bg-white dark:bg-slate-800 rounded-[28px] p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+          <div className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl sm:p-6">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <h2 className="text-xl font-bold text-slate-800 dark:text-white">Courier availability</h2>
-                <p className="text-sm text-slate-500">
+                <h2 className="text-xl font-bold text-white">Courier availability</h2>
+                <p className="text-sm text-white/52">
                   Buyurtma olish holatingizni shu yerdan boshqaring
                 </p>
               </div>
@@ -378,8 +380,8 @@ export default function Profile() {
                 disabled={updatingAvailability}
                 className={`w-full md:w-auto rounded-2xl px-5 py-3.5 font-semibold transition-colors touch-target ${
                   user.isAvailable
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-700'
-                    : 'bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600'
+                    ? 'bg-emerald-500 text-white hover:bg-emerald-400'
+                    : 'bg-white/[0.08] text-white hover:bg-white/[0.12]'
                 } disabled:opacity-60`}
               >
                 {updatingAvailability
@@ -392,45 +394,42 @@ export default function Profile() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-800 rounded-[28px] p-5 sm:p-6 shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="rounded-[32px] border border-white/10 bg-white/[0.06] p-5 shadow-[0_18px_50px_rgba(15,23,42,0.24)] backdrop-blur-xl sm:p-6">
           <div className="mb-5">
-            <h2 className="text-xl font-bold text-slate-800 dark:text-white">Parolni almashtirish</h2>
-            <p className="text-sm text-slate-500">Hisobingiz xavfsizligi uchun yangi parol o'rnating</p>
+            <h2 className="flex items-center gap-2 text-xl font-bold text-white"><ShieldCheck size={18} className="text-[#ffcc33]" />Parolni almashtirish</h2>
+            <p className="text-sm text-white/52">Hisobingiz xavfsizligi uchun yangi parol o'rnating</p>
           </div>
 
           <form onSubmit={handlePasswordSave} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Joriy parol</label>
+            <FormField label="Joriy parol">
               <input
                 type="password"
                 value={passwordForm.currentPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Yangi parol</label>
+            </FormField>
+            <FormField label="Yangi parol">
               <input
                 type="password"
                 value={passwordForm.newPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Yangi parolni tasdiqlang</label>
+            </FormField>
+            <FormField label="Yangi parolni tasdiqlang">
               <input
                 type="password"
                 value={passwordForm.confirmPassword}
                 onChange={(e) => setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 px-4 py-3.5 outline-none focus:border-primary"
+                className="h-12 w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white outline-none transition focus:border-[#ffcc33]/50 focus:bg-white/[0.08] focus:shadow-[0_0_0_4px_rgba(255,204,51,0.12)]"
               />
-            </div>
+            </FormField>
             <div className="md:col-span-3 flex justify-stretch md:justify-end">
               <button
                 type="submit"
                 disabled={updatingPassword}
-                className="w-full md:w-auto rounded-2xl bg-slate-900 px-5 py-3.5 font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60 dark:bg-white dark:text-slate-900 touch-target"
+                className="w-full md:w-auto rounded-2xl bg-white px-5 py-3.5 font-semibold text-slate-950 transition hover:brightness-95 disabled:opacity-60 touch-target"
               >
                 {updatingPassword ? "Yangilanmoqda..." : "Parolni yangilash"}
               </button>
@@ -458,8 +457,8 @@ export default function Profile() {
                     onClick={() => setOrderTab(tab.key)}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors touch-target ${
                       orderTab === tab.key
-                        ? 'bg-primary text-white shadow-md shadow-primary/20'
-                        : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 dark:hover:bg-slate-700'
+                        ? 'bg-[#ffcc33] text-slate-950 shadow-[0_12px_30px_rgba(255,204,51,0.22)]'
+                        : 'border border-white/10 bg-white/[0.06] text-white/68 hover:bg-white/[0.1]'
                     }`}
                   >
                     {tab.label} ({tab.count})
@@ -485,28 +484,28 @@ export default function Profile() {
                   return (
                   <div
                     key={order._id}
-                    className={`p-4 sm:p-5 rounded-[24px] border shadow-sm ${
+                    className={`p-4 sm:p-5 rounded-[28px] border shadow-sm backdrop-blur-md ${
                       isPrimaryActiveOrder
-                        ? 'bg-primary/[0.06] border-primary/40 ring-1 ring-primary/20 dark:bg-primary/10 dark:border-primary/30'
-                        : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                        ? 'bg-[#ffcc33]/10 border-[#ffcc33]/30 ring-1 ring-[#ffcc33]/15'
+                        : 'bg-white/[0.06] border-white/10'
                     }`}
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start mb-2">
                       <div className="space-y-2">
                         {isPrimaryActiveOrder && (
-                          <span className="inline-flex self-start rounded-full bg-primary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+                          <span className="inline-flex self-start rounded-full bg-[#ffcc33] px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-950">
                             Hozirgi buyurtma
                           </span>
                         )}
-                        <h3 className="font-bold text-slate-800 dark:text-white">{order.restaurant?.name}</h3>
+                        <h3 className="font-bold text-white">{order.restaurant?.name}</h3>
                       </div>
                       <span className={`self-start text-[10px] px-2.5 py-1 rounded-full font-bold uppercase ${orderStatusClasses[order.status] || orderStatusClasses.pending}`}>
                         {order.status}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 space-y-1">
+                    <div className="text-xs text-white/56 space-y-1">
                       <p>{order.items.map(i => `${i.quantity}x ${i.name}`).join(', ')}</p>
-                      <p className="font-bold text-slate-800 dark:text-slate-200">{order.totalPrice.toLocaleString()} so'm</p>
+                      <p className="font-bold text-white">{order.totalPrice.toLocaleString()} so'm</p>
                       <p>To'lov: {order.paymentStatus || 'unpaid'}</p>
                       <p>{new Date(order.createdAt).toLocaleDateString()}</p>
                       <p>Delivery: {order.deliveryAddress?.address || "manzil kiritilmagan"}</p>
@@ -520,9 +519,9 @@ export default function Profile() {
                       )}
                     </div>
 
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
+                    <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-white/38">
                           Buyurtma kuzatuvi
                         </p>
                         <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase ${orderStatusClasses[order.status] || orderStatusClasses.pending}`}>
@@ -537,11 +536,11 @@ export default function Profile() {
                             <div key={step} className="flex flex-col items-center gap-2 text-center">
                               <div
                                 className={`h-2.5 w-full rounded-full ${
-                                  isDone ? 'bg-primary' : 'bg-slate-200 dark:bg-slate-700'
+                                  isDone ? 'bg-[#ffcc33]' : 'bg-white/10'
                                 } ${isCurrent ? 'shadow-[0_0_0_3px_rgba(249,115,22,0.18)]' : ''}`}
                               />
                               <span className={`text-[10px] font-medium ${
-                                isDone ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400'
+                                isDone ? 'text-white/84' : 'text-white/35'
                               }`}>
                                 {orderStatusLabels[step]}
                               </span>
@@ -560,8 +559,8 @@ export default function Profile() {
                       order.deliveryAddress?.lat !== undefined &&
                       order.deliveryAddress?.lng !== null &&
                       order.deliveryAddress?.lng !== undefined && (
-                        <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/50">
-                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+                          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/38">
                             <MapPin size={12} />
                             Yetkazish joyi
                           </div>
@@ -569,7 +568,7 @@ export default function Profile() {
                             <iframe
                               title={`delivery-location-${order._id}`}
                               src={`${getMapUrl(order.deliveryAddress.lat, order.deliveryAddress.lng)}&output=embed`}
-                              className="h-44 w-full bg-slate-100 dark:bg-slate-900"
+                            className="h-44 w-full bg-slate-100 dark:bg-slate-900"
                               loading="lazy"
                               referrerPolicy="no-referrer-when-downgrade"
                             />
@@ -578,7 +577,7 @@ export default function Profile() {
                             href={getMapUrl(order.deliveryAddress.lat, order.deliveryAddress.lng)}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-2 inline-flex rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-slate-900 touch-target"
+                            className="mt-2 inline-flex rounded-xl bg-white px-3 py-2.5 text-xs font-medium text-slate-950 transition-opacity hover:opacity-90 touch-target"
                           >
                             Mening manzilimni ochish
                           </a>
@@ -589,12 +588,12 @@ export default function Profile() {
                       order.courier?.currentLocation?.lat !== undefined &&
                       order.courier?.currentLocation?.lng !== null &&
                       order.courier?.currentLocation?.lng !== undefined && (
-                        <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-3 dark:border-violet-900/40 dark:bg-violet-950/20">
+                        <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/10 p-3">
                           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-300">
                             <MapPin size={12} />
                             Kuryer live tracking
                           </div>
-                          <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+                          <p className="mt-2 text-xs text-white/64">
                             {order.courier?.username || 'Kuryer'} yo'lda. Oxirgi update:{' '}
                             {order.courier?.currentLocation?.updatedAt
                               ? new Date(order.courier.currentLocation.updatedAt).toLocaleString()
@@ -613,7 +612,7 @@ export default function Profile() {
                             href={getMapUrl(order.courier.currentLocation.lat, order.courier.currentLocation.lng)}
                             target="_blank"
                             rel="noreferrer"
-                            className="mt-2 inline-flex rounded-xl bg-violet-600 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 touch-target"
+                              className="mt-2 inline-flex rounded-xl bg-violet-500 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 touch-target"
                           >
                             Kuryerni xaritada ko'rish
                           </a>
@@ -621,13 +620,13 @@ export default function Profile() {
                             <div className="mt-2 flex flex-wrap gap-2">
                               <a
                                 href={courierCallHref}
-                                className="inline-flex rounded-xl bg-slate-900 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-slate-900 touch-target"
+                                className="inline-flex rounded-xl bg-white px-3 py-2.5 text-xs font-medium text-slate-950 transition-opacity hover:opacity-90 touch-target"
                               >
                                 Kuryerga qo'ng'iroq
                               </a>
                               <a
                                 href={courierSmsHref}
-                                className="inline-flex rounded-xl bg-sky-600 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 touch-target"
+                                className="inline-flex rounded-xl bg-sky-500 px-3 py-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 touch-target"
                               >
                                 SMS
                               </a>
@@ -662,7 +661,7 @@ export default function Profile() {
               {notificationsLoading ? (
                 <div className="flex justify-center p-4"><Loader2 className="animate-spin text-primary" /></div>
               ) : notifications.length === 0 ? (
-                <p className="text-sm text-slate-500 italic">Hozircha bildirishnomalar yo'q.</p>
+                <p className="text-sm text-white/50 italic">Hozircha bildirishnomalar yo'q.</p>
               ) : (
                 notifications.map((notification) => (
                   <button
@@ -671,15 +670,15 @@ export default function Profile() {
                     onClick={() => markNotificationRead(notification._id)}
                     className={`w-full text-left block p-4 rounded-[24px] border shadow-sm transition-colors ${
                       notification.isRead
-                        ? 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                        : 'bg-primary/5 dark:bg-primary/10 border-primary/30'
+                        ? 'bg-white/[0.06] border-white/10'
+                        : 'bg-[#ffcc33]/10 border-[#ffcc33]/30'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-bold text-slate-800 dark:text-white">{notification.title}</h3>
-                        <p className="text-xs text-slate-500 mt-1">{notification.message}</p>
-                        <p className="text-[11px] text-slate-400 mt-2">
+                        <h3 className="font-bold text-white">{notification.title}</h3>
+                        <p className="text-xs text-white/58 mt-1">{notification.message}</p>
+                        <p className="text-[11px] text-white/36 mt-2">
                           {new Date(notification.createdAt).toLocaleString()}
                         </p>
                       </div>
@@ -702,19 +701,19 @@ export default function Profile() {
           </h2>
           <div className="space-y-3">
             {user.favorites?.length === 0 ? (
-              <p className="text-sm text-slate-500 italic">Hozircha saqlangan restoranlar yo'q.</p>
+              <p className="text-sm text-white/50 italic">Hozircha saqlangan restoranlar yo'q.</p>
             ) : (
               user.favorites?.map(fav => (
-                <Link key={fav._id} to={`/restaurant/${fav._id}`} className="block bg-white dark:bg-slate-800 p-4 rounded-[24px] border border-slate-200 dark:border-slate-700 shadow-sm hover:border-primary transition-colors">
+                <Link key={fav._id} to={`/restaurant/${fav._id}`} className="block rounded-[24px] border border-white/10 bg-white/[0.06] p-4 shadow-sm transition-colors hover:border-[#ffcc33]/40">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <h3 className="font-bold text-slate-800 dark:text-white">{fav.name}</h3>
-                      <p className="text-xs text-slate-500 mt-1 line-clamp-1">{fav.address}</p>
+                      <h3 className="font-bold text-white">{fav.name}</h3>
+                      <p className="text-xs text-white/52 mt-1 line-clamp-1">{fav.address}</p>
                     </div>
                     <button
                       type="button"
                       onClick={(event) => handleRemoveFavorite(event, fav._id)}
-                      className="touch-target inline-flex shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-500 transition-colors hover:bg-red-100 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-950/50"
+                      className="touch-target inline-flex shrink-0 items-center justify-center rounded-2xl bg-red-500/12 text-red-200 transition-colors hover:bg-red-500/18"
                       title="Saqlanganlardan olib tashlash"
                     >
                       <X size={16} />

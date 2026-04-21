@@ -141,18 +141,45 @@
 .leaflet-container {
   font-family: inherit;
   z-index: 10;
+  background: #f8fafc;
+}
+.dark .leaflet-container {
+  background: #0f172a;
+}
+.leaflet-tile-container,
+.leaflet-pane {
+  will-change: transform;
 }
 .leaflet-popup-content-wrapper {
-  @apply rounded-xl shadow-lg border border-slate-100 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  padding: 0 !important;
 }
 .leaflet-popup-tip {
-  @apply dark:bg-slate-900;
+  background: #1e293b !important;
+  box-shadow: none !important;
 }
 .leaflet-popup-content {
-  margin: 12px;
+  margin: 0 !important;
 }
 .custom-popup .leaflet-popup-content-wrapper {
-  border-radius: 1rem;
+  border-radius: 0 !important;
+}
+.custom-popup .leaflet-popup-tip-container {
+  margin-top: -1px;
+}
+.custom-popup .leaflet-popup-close-button {
+  display: none;
+}
+.map-popup-card {
+  animation: popup-scale-in 220ms ease-out;
+  transform-origin: center bottom;
+}
+@media (max-width: 767px) {
+  .custom-popup .leaflet-popup-content {
+    max-width: min(78vw, 280px);
+  }
 }
 .restaurant-marker-wrapper {
   background: transparent;
@@ -203,5 +230,15 @@
   100% {
     transform: scale(1.4);
     opacity: 0;
+  }
+}
+@keyframes popup-scale-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

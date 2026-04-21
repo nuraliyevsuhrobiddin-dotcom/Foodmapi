@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Moon, Sun, User, Utensils, LogOut, Settings, Menu, X, ShoppingBag, Bell } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { Bell, LogOut, MapPin, Menu, Moon, Settings, ShoppingBag, Sun, User, Utensils } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import MobileDrawer from './navbar/MobileDrawer';
 
 const roleTitles = {
   admin: 'Boshqaruv Paneli',
@@ -21,166 +22,228 @@ export default function Navbar({ darkMode, toggleTheme }) {
   const { user, setIsAuthModalOpen, logout, unreadNotificationsCount } = useAuth();
   const { cartItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const dashboardPath = roleDashboardPaths[user?.role] || '/admin';
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
+  const location = useLocation();
 
+  const dashboardPath = roleDashboardPaths[user?.role] || '/admin';
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
+  const iconButtonClass =
+    'inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white active:scale-95';
+
+  const navLinkClass = (active) =>
+    `flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium transition-all duration-300 ${
+      active ? 'bg-white/10 text-white' : 'text-white/72 hover:text-white'
+    }`;
+
+  const pillButtonClass =
+    'inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-white/85 backdrop-blur-md transition-all duration-200 hover:bg-white/10';
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 12);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return undefined;
+
+    const handlePointerDown = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isUserMenuOpen]);
+
+  const isActivePath = useMemo(
+    () => (path) => (path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)),
+    [location.pathname]
+  );
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/80 dark:bg-[#0f172a]/80 ios-safe-top">
-      <div className="max-w-7xl mx-auto h-[72px] px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
-        <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all duration-300">
-            <Utensils size={22} />
+    <nav
+      className={`fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-xl transition-all duration-300 ios-safe-top ${
+        isScrolled ? 'shadow-md shadow-black/25 backdrop-blur-2xl' : ''
+      }`}
+    >
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:h-16 sm:px-6 lg:px-8">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#ffcc33] text-slate-950 shadow-[0_10px_24px_rgba(255,204,51,0.26)] sm:h-10 sm:w-10">
+            <Utensils size={18} />
           </div>
-          <span className="text-lg sm:text-xl font-bold tracking-tight text-secondary">
-            Food<span className="text-primary">Map</span>
+          <span className="text-base font-semibold tracking-tight text-white sm:text-lg">
+            Food<span className="text-[#ffcc33]">Map</span>
           </span>
         </Link>
-        
-        <div className="hidden md:flex items-center gap-8">
-          <Link to="/" className="text-sm font-medium text-text-muted hover:text-primary transition-colors flex items-center gap-1">
-             <MapPin size={18} />
-             Xarita
+
+        <div className="hidden items-center gap-7 md:flex">
+          <Link to="/" className={navLinkClass(isActivePath('/'))}>
+            <MapPin size={16} />
+            Xarita
           </Link>
-          <Link to="/" className="text-sm font-medium text-text-muted hover:text-primary transition-colors">
+          <Link to="/" className={navLinkClass(isActivePath('/restaurants'))}>
             Restoranlar
           </Link>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-3">
-          <motion.button 
+        <div className="flex items-center gap-2">
+          <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={toggleTheme} 
-            className="touch-target inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-text-muted transition-colors"
+            onClick={toggleTheme}
+            className={iconButtonClass}
             aria-label="Toggle theme"
           >
-            {darkMode ? <Sun size={20} /> : <Moon size={20} />}
+            {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </motion.button>
-          
-          {user ? (
-            <div className="flex items-center gap-3">
-              <Link to="/profile" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <User size={18} />
-                </div>
-                <span className="hidden sm:block text-sm font-semibold text-slate-700 dark:text-slate-200">
-                  {user.username}
-                </span>
+
+          {!user ? (
+            <button
+              type="button"
+              onClick={() => setIsAuthModalOpen(true)}
+              className={iconButtonClass}
+              aria-label="Kirish"
+            >
+              <User className="h-5 w-5" />
+            </button>
+          ) : (
+            <>
+              <Link to="/profile" className={`${iconButtonClass} relative`} title="Profil" aria-label="Profil">
+                <User className="h-5 w-5" />
               </Link>
               <Link
                 to="/profile"
-                className="relative touch-target inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
+                className={`${iconButtonClass} relative hidden sm:inline-flex`}
                 title="Bildirishnomalar"
+                aria-label="Bildirishnomalar"
               >
-                <Bell size={18} />
+                <Bell className="h-5 w-5" />
                 {unreadNotificationsCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-[#0f172a]">
+                  <span className="absolute right-0 top-0 flex min-w-[18px] -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-[#ffcc33] px-1 text-[10px] font-bold text-slate-950">
                     {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                   </span>
                 )}
               </Link>
               {['admin', 'restaurant', 'courier'].includes(user.role) && (
-                <Link to={dashboardPath} className="touch-target inline-flex items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title={roleTitles[user.role] || 'Panel'}>
-                  <Settings size={18} />
+                <Link to={dashboardPath} className={`${iconButtonClass} hidden sm:inline-flex`} title={roleTitles[user.role] || 'Panel'}>
+                  <Settings className="h-5 w-5" />
                 </Link>
               )}
-              <button 
-                onClick={logout}
-                className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium transition-colors"
-              >
-                <LogOut size={16} />
-                Chiqish
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setIsAuthModalOpen(true)}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-orange-600 text-white font-medium shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all duration-300"
-            >
-              <User size={18} />
-              Kirish
-            </button>
+            </>
           )}
 
-          {/* Cart Icon */}
-          <button 
-            onClick={() => setIsCartOpen(true)}
-            className="touch-target relative inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
-          >
-            <ShoppingBag size={22} />
+          <button onClick={() => setIsCartOpen(true)} className={`${iconButtonClass} relative`} aria-label="Savatcha">
+            <ShoppingBag className="h-5 w-5" />
             {cartItems.length > 0 && (
-              <span className="absolute 1 top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-[#0f172a]">
+              <span className="absolute right-0 top-0 flex min-w-[18px] -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-[#ffcc33] px-1 text-[10px] font-bold text-slate-950">
                 {cartItems.length}
               </span>
             )}
           </button>
 
-          {/* Mobile Menu Toggle */}
-          <button 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden touch-target -mr-1 inline-flex items-center justify-center rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className={`md:hidden ${iconButtonClass}`}
+            aria-label="Menyu"
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            <Menu className="h-5 w-5" />
           </button>
+
+          {user ? (
+            <div className="hidden items-center gap-2 md:flex">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsUserMenuOpen((prev) => !prev)}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium backdrop-blur-md transition-all duration-200 ${
+                    isUserMenuOpen || isActivePath('/profile')
+                      ? 'border-white/20 bg-white/10 text-white'
+                      : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  {user.username}
+                </button>
+
+                {isUserMenuOpen ? (
+                  <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-52 rounded-3xl border border-white/10 bg-slate-950/92 p-2 shadow-2xl backdrop-blur-xl">
+                    <div className="mb-2 border-b border-white/8 px-3 pb-2 pt-1">
+                      <p className="text-sm font-semibold text-white">{user.username}</p>
+                      <p className="truncate text-xs text-white/45">{user.email}</p>
+                    </div>
+
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-white/82 transition-all duration-200 hover:bg-white/10 hover:text-white"
+                    >
+                      <User size={16} />
+                      Profil
+                    </Link>
+
+                    {['admin', 'restaurant', 'courier'].includes(user.role) ? (
+                      <Link
+                        to={dashboardPath}
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="mt-1 flex items-center gap-2 rounded-2xl px-3 py-2 text-sm text-white/82 transition-all duration-200 hover:bg-white/10 hover:text-white"
+                      >
+                        <Settings size={16} />
+                        {roleTitles[user.role] || 'Panel'}
+                      </Link>
+                    ) : null}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        logout();
+                      }}
+                      className="mt-1 flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-sm text-red-400 transition-all duration-200 hover:bg-red-400/10"
+                    >
+                      <LogOut size={16} />
+                      Chiqish
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className={`hidden md:inline-flex ${pillButtonClass} border-white/20 text-white/90`}
+            >
+              Kirish
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Mobile Menu Dropdown */}
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0f172a]/98 shadow-xl overflow-hidden"
-          >
-            <div className="px-4 pt-2 pb-6 ios-safe-bottom space-y-3 flex flex-col items-center text-center">
-              <Link onClick={closeMobileMenu} to="/" className="w-full py-3 px-4 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800 flex justify-center items-center gap-2">
-                 <MapPin size={18} />
-                 Xarita
-              </Link>
-              <Link onClick={closeMobileMenu} to="/" className="w-full py-3 px-4 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800 flex justify-center items-center gap-2">
-                 <Utensils size={18} />
-                 Restoranlar
-              </Link>
-
-              {user ? (
-                <>
-                  <Link onClick={closeMobileMenu} to="/profile" className="w-full py-3 px-4 rounded-xl font-medium bg-primary/10 text-primary border border-primary/20 flex justify-center items-center gap-2">
-                    <User size={18} />
-                    Mening Profilim ({user.username})
-                  </Link>
-                  <Link onClick={closeMobileMenu} to="/profile" className="w-full py-3 px-4 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex justify-center items-center gap-2">
-                    <Bell size={18} />
-                    Bildirishnomalar {unreadNotificationsCount > 0 ? `(${unreadNotificationsCount})` : ''}
-                  </Link>
-                  {['admin', 'restaurant', 'courier'].includes(user.role) && (
-                    <Link onClick={closeMobileMenu} to={dashboardPath} className="w-full py-3 px-4 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex justify-center items-center gap-2">
-                      <Settings size={18} />
-                      {roleTitles[user.role] || 'Panel'}
-                    </Link>
-                  )}
-                  <button 
-                    onClick={() => { logout(); closeMobileMenu(); }}
-                    className="w-full py-3 px-4 rounded-xl border border-red-200 dark:border-red-900/40 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium transition-colors flex justify-center items-center gap-2"
-                  >
-                    <LogOut size={18} />
-                    Chiqish
-                  </button>
-                </>
-              ) : (
-                <button 
-                  onClick={() => { setIsAuthModalOpen(true); closeMobileMenu(); }}
-                  className="w-full py-3.5 mt-2 rounded-xl bg-primary text-white font-medium shadow-lg shadow-primary/25 flex justify-center items-center gap-2"
-                >
-                  <User size={18} />
-                  Maxsus panelga kirish
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <MobileDrawer
+        isOpen={isMobileMenuOpen}
+        onClose={closeMobileMenu}
+        user={user}
+        onLogin={() => setIsAuthModalOpen(true)}
+        onLogout={logout}
+        unreadNotificationsCount={unreadNotificationsCount}
+        dashboardPath={['admin', 'restaurant', 'courier'].includes(user?.role) ? dashboardPath : ''}
+        dashboardTitle={roleTitles[user?.role] || 'Panel'}
+        isActivePath={isActivePath}
+      />
     </nav>
   );
 }

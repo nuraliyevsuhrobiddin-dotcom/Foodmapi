@@ -158,7 +158,7 @@ function App() {
             <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
             <AuthModal />
             <CartSidebar />
-            <main className="flex-1 flex flex-col pt-[76px] sm:pt-[80px]">
+            <main className="flex-1 flex flex-col pt-[56px] sm:pt-[64px]">
             <Suspense fallback={<div className="flex-1 bg-background" />}>
               <Routes>
                 <Route path="/" element={<Home />} />

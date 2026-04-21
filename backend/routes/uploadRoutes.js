@@ -15,25 +15,36 @@ cloudinary.config({
 // Cloudinary storage parametri
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
-  params: {
-    folder: 'foodmap_uploads', // Cloudinary dagi papka nomi
-    allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+  params: async (req, file) => {
+    const isVideo = file.mimetype?.startsWith('video/');
+
+    return {
+      folder: 'foodmap_uploads',
+      resource_type: isVideo ? 'video' : 'image',
+      allowed_formats: isVideo
+        ? ['mp4', 'mov', 'webm', 'm4v']
+        : ['jpg', 'jpeg', 'png', 'webp'],
+    };
   },
 });
 
 const upload = multer({ storage: storage });
 
 // @route   POST /api/upload
-// @desc    Rasm yuklash
+// @desc    Media yuklash
 // @access  Private/Admin
-router.post('/', protect, admin, upload.array('image', 5), (req, res) => {
+router.post('/', protect, admin, upload.array('media', 5), (req, res) => {
   if (req.files && req.files.length > 0) {
-    // Disk o'rniga cloudinary o'zi URL qaytaradi req.files[].path ichida
-    const urls = req.files.map(file => file.path);
+    const files = req.files.map((file) => ({
+      url: file.path,
+      resourceType: file.resource_type || (file.mimetype?.startsWith('video/') ? 'video' : 'image'),
+      format: file.format || '',
+    }));
     res.json({
       success: true,
-      urls,
-      message: 'Rasmlar Cloudinary ga muvaffaqiyatli yuklandi'
+      files,
+      urls: files.map((file) => file.url),
+      message: 'Media Cloudinary ga muvaffaqiyatli yuklandi'
     });
   } else {
     res.status(400).json({ success: false, message: 'Fayl topilmadi yoki yuklanmadi' });

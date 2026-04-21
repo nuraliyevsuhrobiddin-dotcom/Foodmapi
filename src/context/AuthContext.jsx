@@ -6,6 +6,14 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+const persistToken = (nextToken) => {
+  if (nextToken) {
+    localStorage.setItem('token', nextToken);
+  } else {
+    localStorage.removeItem('token');
+  }
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -41,10 +49,12 @@ export const AuthProvider = ({ children }) => {
       if (res.ok) {
         setUser(data);
       } else {
+        persistToken(null);
         setToken(null);
       }
     } catch (err) {
       console.error('Failed to fetch profile', err);
+      persistToken(null);
       setToken(null);
     } finally {
       setAuthLoading(false);
@@ -142,11 +152,11 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (token) {
       setAuthLoading(true);
-      localStorage.setItem('token', token);
+      persistToken(token);
       fetchProfile(token);
       refreshNotifications(token);
     } else {
-      localStorage.removeItem('token');
+      persistToken(null);
       setUser(null);
       setNotifications([]);
       setAuthLoading(false);
@@ -163,8 +173,17 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ email, password })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.token) {
+        persistToken(data.token);
         setToken(data.token);
+        setUser({
+          _id: data._id,
+          username: data.username,
+          email: data.email,
+          phone: data.phone,
+          role: data.role,
+          restaurantId: data.restaurantId,
+        });
         return { success: true };
       }
       return { success: false, message: data.message || 'Xatolik yuz berdi' };
@@ -182,8 +201,17 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ username, email, password, phone })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.token) {
+        persistToken(data.token);
         setToken(data.token);
+        setUser({
+          _id: data._id,
+          username: data.username,
+          email: data.email,
+          phone: data.phone,
+          role: data.role,
+          restaurantId: data.restaurantId,
+        });
         return { success: true };
       }
       return { success: false, message: data.message || 'Xatolik yuz berdi' };
@@ -194,6 +222,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    persistToken(null);
     setToken(null);
   };
 

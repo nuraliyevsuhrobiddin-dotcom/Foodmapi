@@ -22,7 +22,21 @@ const normalizeCategoryLabel = (value) => {
     'fast-food': 'Fast Food',
   };
 
-  return categoryMap[normalizedValue] || String(value || '').trim();
+  if (!normalizedValue) return '';
+  if (categoryMap[normalizedValue]) return categoryMap[normalizedValue];
+
+  if (normalizedValue.includes('fast')) return 'Fast Food';
+  if (normalizedValue.includes('milliy') || normalizedValue.includes('national')) return 'Milliy';
+  if (
+    normalizedValue.includes('kafe') ||
+    normalizedValue.includes('cafe') ||
+    normalizedValue.includes('coffee') ||
+    normalizedValue.includes('cofe')
+  ) {
+    return 'Kafe';
+  }
+
+  return String(value || '').trim();
 };
 
 const normalizeRestaurantCategoryPayload = (restaurant) => {
