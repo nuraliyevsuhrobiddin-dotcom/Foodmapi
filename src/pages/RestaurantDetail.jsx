@@ -16,6 +16,7 @@ import NavigationSteps from '../components/restaurant-detail/NavigationSteps';
 import MenuList from '../components/restaurant-detail/MenuList';
 import ReviewList from '../components/restaurant-detail/ReviewList';
 import DetailSkeleton from '../components/restaurant-detail/DetailSkeleton';
+import { formatDistance, formatDuration } from '../utils/navigationFormat';
 
 const customMarkerIcon = new L.Icon({
   iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
@@ -64,20 +65,26 @@ function RoutingMachine({ start, end, onRouteFound }) {
           const route = e.routes?.[0];
           if (!route || !onRouteFound) return;
 
-          const distance = (route.summary.totalDistance / 1000).toFixed(2);
-          const time = Math.round(route.summary.totalTime / 60);
+          const totalDistance = route.summary.totalDistance || 0;
+          const totalTime = route.summary.totalTime || 0;
           const steps = Array.isArray(route.instructions)
             ? route.instructions.map((instruction) => ({
                 text: instruction.text,
                 distance: instruction.distance,
                 time: instruction.time,
-                distanceText: `${Math.max((instruction.distance || 0) / 1000, 0.1).toFixed(1)} km`,
-                timeText: `${Math.max(Math.round((instruction.time || 0) / 60), 1)} min`,
+                distanceText: formatDistance(instruction.distance),
+                timeText: formatDuration(instruction.time),
                 type: instruction.type,
               }))
             : [];
 
-          onRouteFound({ distance, time, steps });
+          onRouteFound({
+            distance: formatDistance(totalDistance),
+            time: formatDuration(totalTime),
+            totalDistance,
+            totalTime,
+            steps,
+          });
         })
         .addTo(map);
     };
@@ -444,7 +451,7 @@ export default function RestaurantDetail() {
           >
             <span className="flex items-center gap-2">
               <Navigation size={16} />
-              {routeInfo.distance} km - {routeInfo.time} daqiqa
+              {routeInfo.distance} • {routeInfo.time}
             </span>
           </motion.div>
         </div>

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, LogOut, MapPin, Settings, User, Utensils, X } from 'lucide-react';
+import { Bell, LogOut, MapPin, Moon, Settings, ShoppingBag, Sun, User, Utensils, X } from 'lucide-react';
 import UserProfile from './UserProfile';
 
 export default function MobileDrawer({
@@ -8,6 +8,10 @@ export default function MobileDrawer({
   onClose,
   user,
   onLogin,
+  darkMode,
+  onToggleTheme,
+  onOpenCart,
+  cartCount = 0,
   onLogout,
   unreadNotificationsCount,
   dashboardPath,
@@ -66,6 +70,14 @@ export default function MobileDrawer({
                 <Utensils size={18} />
                 Restoranlar
               </Link>
+              <button type="button" onClick={onOpenCart} className={`${itemClass(false)} w-full`}>
+                <ShoppingBag size={18} />
+                Savatcha {cartCount > 0 ? `(${cartCount})` : ''}
+              </button>
+              <button type="button" onClick={onToggleTheme} className={`${itemClass(false)} w-full`}>
+                {darkMode ? <Sun size={18} /> : <Moon size={18} />}
+                {darkMode ? "Yorug' rejim" : 'Tungi rejim'}
+              </button>
 
               {user ? (
                 <>

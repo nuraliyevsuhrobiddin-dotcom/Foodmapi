@@ -111,7 +111,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={toggleTheme}
-            className={iconButtonClass}
+            className={`${iconButtonClass} hidden md:inline-flex`}
             aria-label="Toggle theme"
           >
             {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
@@ -152,7 +152,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
             </>
           )}
 
-          <button onClick={() => setIsCartOpen(true)} className={`${iconButtonClass} relative`} aria-label="Savatcha">
+          <button onClick={() => setIsCartOpen(true)} className={`${iconButtonClass} relative hidden md:inline-flex`} aria-label="Savatcha">
             <ShoppingBag className="h-5 w-5" />
             {cartItems.length > 0 && (
               <span className="absolute right-0 top-0 flex min-w-[18px] -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-[#ffcc33] px-1 text-[10px] font-bold text-slate-950">
@@ -242,6 +242,13 @@ export default function Navbar({ darkMode, toggleTheme }) {
         onClose={closeMobileMenu}
         user={user}
         onLogin={authOverlay.open}
+        darkMode={darkMode}
+        onToggleTheme={toggleTheme}
+        onOpenCart={() => {
+          closeMobileMenu();
+          setIsCartOpen(true);
+        }}
+        cartCount={cartItems.length}
         onLogout={logout}
         unreadNotificationsCount={unreadNotificationsCount}
         dashboardPath={['admin', 'restaurant', 'courier'].includes(user?.role) ? dashboardPath : ''}

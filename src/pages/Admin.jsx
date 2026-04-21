@@ -108,7 +108,7 @@ const roleDashboardConfig = {
     orderTitle: 'Barcha buyurtmalar',
     orderDescription: "Tizim bo'ylab tushgan buyurtmalarni kuzating va operatsiyani boshqaring",
     heroAccent: 'from-[#1e293b] to-[#0f172a]',
-    badge: 'ADMIN',
+    badge: 'BOSHQARUV',
   },
   restaurant: {
     title: 'Restoran Paneli',
@@ -116,7 +116,7 @@ const roleDashboardConfig = {
     orderTitle: 'Restoran buyurtmalari',
     orderDescription: "Sizga tegishli buyurtmalarni statuslar bo'yicha nazorat qiling",
     heroAccent: 'from-[#1e293b] to-[#0f172a]',
-    badge: 'RESTAURANT',
+    badge: 'RESTORAN',
   },
   courier: {
     title: 'Kuryer Paneli',
@@ -124,7 +124,7 @@ const roleDashboardConfig = {
     orderTitle: 'Biriktirilgan yetkazmalar',
     orderDescription: "Yetkazib berishdagi buyurtmalarni boshqarish uchun ishchi panel",
     heroAccent: 'from-[#1e293b] to-[#0f172a]',
-    badge: 'COURIER',
+    badge: 'KURYER',
   },
 };
 
@@ -300,9 +300,9 @@ const isLongitudeValid = (value) => value >= -180 && value <= 180;
 const workingHoursPattern = /^\d{2}:\d{2}\s*-\s*\d{2}:\d{2}$/;
 const categoryIconMap = {
   Milliy: '🍲',
-  'Fast Food': '🍔',
+  'Tez taomlar': '🍔',
   Kafe: '☕',
-  Desert: '🍰',
+  Shirinliklar: '🍰',
   Ichimliklar: '🥤',
 };
 
@@ -1924,7 +1924,7 @@ export default function Admin() {
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-white">Rasm yoki video yuklang</div>
-                      <div className="mt-1 text-xs text-slate-400">Maksimum 5 ta fayl. Image + Video qo'llab-quvvatlanadi.</div>
+                      <div className="mt-1 text-xs text-slate-400">Maksimum 5 ta fayl. Rasm va video qo'llab-quvvatlanadi.</div>
                     </div>
                     <div className="rounded-full border border-white/10 bg-white/10 px-4 py-2 text-xs font-medium text-white">
                       Media tanlash

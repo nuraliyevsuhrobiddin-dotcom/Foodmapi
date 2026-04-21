@@ -6,6 +6,7 @@ import { Search, MapPin, Mic, Navigation, Sparkles, ChevronUp, SlidersHorizontal
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { useMapFocus } from '../context/MapFocusContext';
 import { useModal } from '../context/ModalContext';
 import FilterPanel from '../components/FilterPanel';
 import RestaurantCard from '../components/RestaurantCard';
@@ -14,7 +15,7 @@ import { getCategoryTheme, normalizeRestaurantCategories } from '../utils/catego
 import L from 'leaflet';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
-const ALL_CATEGORY = 'All';
+const ALL_CATEGORY = 'Barchasi';
 
 const userPinIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/14090/14090151.png',
@@ -23,9 +24,17 @@ const userPinIcon = new L.Icon({
   popupAnchor: [0, -32],
 });
 
-function ChangeView({ center, zoom }) {
+function ChangeView({ center, zoom, shouldAnimate = false }) {
   const map = useMap();
-  map.setView(center, zoom);
+
+  useEffect(() => {
+    if (shouldAnimate) {
+      map.flyTo(center, zoom, { duration: 0.8 });
+    } else {
+      map.setView(center, zoom);
+    }
+  }, [center, zoom, shouldAnimate, map]);
+
   return null;
 }
 
@@ -166,6 +175,7 @@ export default function Home() {
   const [routeInfo, setRouteInfo] = useState(null);
   const { user, token } = useAuth();
   const { activeOverlay } = useModal();
+  const { selectedRestaurant } = useMapFocus();
 
   const activeRestaurant = restaurants.find(
     (restaurant) => (restaurant._id || restaurant.id) === activeRestaurantId
@@ -378,11 +388,31 @@ export default function Home() {
     }
   }, [activeOverlay]);
 
+  useEffect(() => {
+    if (!selectedRestaurant?.focusKey) return;
+
+    const focusedRestaurantId = selectedRestaurant._id || selectedRestaurant.id;
+    const focusedRestaurant = restaurants.find(
+      (restaurant) => (restaurant._id || restaurant.id) === focusedRestaurantId
+    );
+
+    if (!focusedRestaurant?.location?.coordinates) return;
+
+    const nextCenter = [
+      focusedRestaurant.location.coordinates[1],
+      focusedRestaurant.location.coordinates[0],
+    ];
+
+    setActiveRestaurantId(focusedRestaurantId);
+    setMapCenter(nextCenter);
+    setSheetExpanded(true);
+  }, [selectedRestaurant, restaurants]);
+
   return (
     <div className="relative flex-1 overflow-hidden bg-[#0b1220]">
       <div className="absolute inset-0">
         <MapContainer center={mapCenter} zoom={13} className="h-full w-full" zoomControl={false}>
-          <ChangeView center={mapCenter} zoom={14} />
+          <ChangeView center={mapCenter} zoom={14} shouldAnimate={Boolean(selectedRestaurant?.focusKey)} />
           <MapResizer watchKey={`${sheetExpanded}-${displayedRestaurants.length}-${activeRestaurantId || ''}`} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -559,7 +589,7 @@ export default function Home() {
             {activeFiltersCount ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-[#ffcc33] px-3 py-1 text-xs font-semibold text-slate-950">
                 <SlidersHorizontal size={12} />
-                {activeFiltersCount} filter
+                  {activeFiltersCount} filtr
               </span>
             ) : null}
           </div>

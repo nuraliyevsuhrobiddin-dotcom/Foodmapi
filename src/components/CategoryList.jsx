@@ -9,7 +9,7 @@ const ICON_MAP = {
   UtensilsCrossed,
 };
 
-const ALL_CATEGORY = 'All';
+const ALL_CATEGORY = 'Barchasi';
 
 function CategoryChip({ active, children, onClick, tone = '', icon: Icon }) {
   return (
@@ -75,7 +75,7 @@ export default function CategoryList({
                 tone={selectedCategory === category ? '' : theme?.idleClass?.includes('amber') ? 'hover:bg-amber-500/18' : theme?.idleClass?.includes('rose') ? 'hover:bg-rose-500/16' : theme?.idleClass?.includes('emerald') ? 'hover:bg-emerald-500/16' : 'hover:bg-white/[0.14]'}
                 icon={Icon}
               >
-                {category === ALL_CATEGORY ? 'Hammasi' : normalizedCategory}
+                {category === ALL_CATEGORY ? 'Barchasi' : normalizedCategory}
               </CategoryChip>
             );
           })}

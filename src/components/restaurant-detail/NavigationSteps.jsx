@@ -1,4 +1,46 @@
 import { ArrowLeft, ArrowRight, Flag, Navigation, Route } from 'lucide-react';
+import { formatDistance, formatDuration } from '../../utils/navigationFormat';
+
+const translateInstruction = (text = '') => {
+  const original = String(text || '').trim();
+  if (!original) return "To'g'ri davom eting";
+
+  let translated = original;
+
+  const replacements = [
+    [/\bTurn left\b/gi, 'Chapga buriling'],
+    [/\bTurn right\b/gi, "O'ngga buriling"],
+    [/\bContinue straight\b/gi, "To'g'ri davom eting"],
+    [/\bContinue\b/gi, 'Davom eting'],
+    [/\bKeep left\b/gi, 'Chap tomonda davom eting'],
+    [/\bKeep right\b/gi, "O'ng tomonda davom eting"],
+    [/\bSlight left\b/gi, 'Biroz chapga buriling'],
+    [/\bSlight right\b/gi, "Biroz o'ngga buriling"],
+    [/\bSharp left\b/gi, 'Keskin chapga buriling'],
+    [/\bSharp right\b/gi, "Keskin o'ngga buriling"],
+    [/\bMake a U-turn\b/gi, 'Ortga qayrilib buriling'],
+    [/\bHead north\b/gi, 'Shimol tomonga harakatlaning'],
+    [/\bHead south\b/gi, 'Janub tomonga harakatlaning'],
+    [/\bHead east\b/gi, 'Sharq tomonga harakatlaning'],
+    [/\bHead west\b/gi, "G'arb tomonga harakatlaning"],
+    [/\bArrive at your destination\b/gi, 'Manzilga yetib keldingiz'],
+    [/\bYou have arrived at your destination\b/gi, 'Manzilga yetib keldingiz'],
+    [/\bDestination will be on the left\b/gi, "Manzil chap tomonda bo'ladi"],
+    [/\bDestination will be on the right\b/gi, "Manzil o'ng tomonda bo'ladi"],
+    [/\bAt the roundabout\b/gi, "Aylanma yo'lda"],
+    [/\broundabout\b/gi, "aylanma yo'l"],
+    [/\btake the ([0-9]+)(st|nd|rd|th) exit\b/gi, '$1-chi chiqishdan chiqing'],
+    [/\bTake the ramp\b/gi, "Yo'l o'tkazgichiga chiqing"],
+    [/\bMerge\b/gi, "Yo'lga qo'shiling"],
+    [/\bonto\b/gi, 'ga'],
+  ];
+
+  replacements.forEach(([pattern, value]) => {
+    translated = translated.replace(pattern, value);
+  });
+
+  return translated;
+};
 
 const getStepIcon = (instruction = {}) => {
   const text = `${instruction.text || ''}`.toLowerCase();
@@ -28,7 +70,7 @@ export default function NavigationSteps({ routeInfo, googleMapsUrl }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/45">Yo&apos;l tafsiloti</p>
           <h3 className="mt-1 text-base font-semibold text-white">
-            {routeInfo.distance} km • {routeInfo.time} min
+            {formatDistance(routeInfo.totalDistance)} • {formatDuration(routeInfo.totalTime)}
           </h3>
         </div>
         {googleMapsUrl ? (
@@ -58,10 +100,10 @@ export default function NavigationSteps({ routeInfo, googleMapsUrl }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium leading-6 text-white">
-                  {step.text || "To'g'ri davom eting"}
+                  {translateInstruction(step.text)}
                 </p>
                 <p className="mt-1 text-xs text-white/45">
-                  {step.distanceText} • {step.timeText}
+                  {step.distanceText || formatDistance(step.distance)} • {step.timeText || formatDuration(step.time)}
                 </p>
               </div>
             </div>

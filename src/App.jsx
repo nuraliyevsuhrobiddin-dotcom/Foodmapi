@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ModalProvider } from './context/ModalContext';
+import { MapFocusProvider } from './context/MapFocusContext';
 import AuthModal from './components/AuthModal';
 import CartSidebar from './components/CartSidebar';
 import { Toaster, toast } from 'react-hot-toast';
@@ -135,9 +136,10 @@ function App() {
   return (
     <ModalProvider>
       <AuthProvider>
-        <CartProvider>
-          <Router>
-            <div className="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
+        <MapFocusProvider>
+          <CartProvider>
+            <Router>
+              <div className="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
               <Toaster
                 position="top-right"
                 reverseOrder={false}
@@ -172,9 +174,10 @@ function App() {
                 </Routes>
               </Suspense>
             </main>
-          </div>
-        </Router>
-        </CartProvider>
+            </div>
+          </Router>
+          </CartProvider>
+        </MapFocusProvider>
       </AuthProvider>
     </ModalProvider>
   );

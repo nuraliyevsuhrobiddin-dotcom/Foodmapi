@@ -198,7 +198,7 @@ export default function HeroSection({
             {mediaType === 'video' ? (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
                 <Video size={13} />
-                Video
+                Video lavha
               </span>
             ) : null}
             <span className="inline-flex items-center gap-1.5 rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-white backdrop-blur-md sm:text-sm">
@@ -248,10 +248,10 @@ export default function HeroSection({
                   type="button"
                   onClick={toggleVideoPlayback}
                   className="flex h-9 items-center gap-2 rounded-full bg-black/45 px-3 text-white backdrop-blur-md transition hover:bg-black/60"
-                  aria-label={isVideoPlaying ? 'Videoni to‘xtatish' : 'Videoni davom ettirish'}
+                  aria-label={isVideoPlaying ? "Videoni to'xtatish" : 'Videoni davom ettirish'}
                 >
                   {isVideoPlaying ? <Pause size={15} /> : <Play size={15} />}
-                  <span className="text-xs font-medium">{isVideoPlaying ? 'Pause' : 'Play'}</span>
+                  <span className="text-xs font-medium">{isVideoPlaying ? "To'xtatish" : 'Davom ettirish'}</span>
                 </button>
               ) : null}
               {Array.from({ length: galleryCount }, (_, index) => (

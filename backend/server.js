@@ -60,10 +60,34 @@ io.on('connection', (socket) => {
 });
 
 // Rate limiting
+const isDevelopment = process.env.NODE_ENV !== 'production';
 const limiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 100,
-  message: 'Juda ko\'p so\'rov yuborildi, iltimos 10 daqiqadan so\'ng qayta urinib ko\'ring',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const ip = Array.isArray(forwardedFor)
+      ? forwardedFor[0]
+      : String(forwardedFor || req.ip || req.socket?.remoteAddress || '')
+          .split(',')[0]
+          .trim();
+
+    return (
+      isDevelopment ||
+      ip === '127.0.0.1' ||
+      ip === '::1' ||
+      ip === '::ffff:127.0.0.1' ||
+      ip === 'localhost'
+    );
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Juda ko'p so'rov yuborildi, iltimos 10 daqiqadan so'ng qayta urinib ko'ring",
+    });
+  },
 });
 
 // Middleware

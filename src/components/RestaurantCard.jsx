@@ -1,11 +1,13 @@
 import { Star, MapPin, ChevronRight, Clock, Heart } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { useMapFocus } from '../context/MapFocusContext';
 import { getCategoryTheme, normalizeRestaurantCategories } from '../utils/categoryUtils';
 
 export default function RestaurantCard({ restaurant, compact = false }) {
   const { user, toggleFavorite, setIsAuthModalOpen } = useAuth();
-  const navigate = useNavigate();
+  const { focusRestaurant } = useMapFocus();
   const restaurantData = normalizeRestaurantCategories(restaurant);
   const restaurantId = restaurantData._id || restaurantData.id;
   const isFavorited =
@@ -18,6 +20,7 @@ export default function RestaurantCard({ restaurant, compact = false }) {
 
   const handleFavoriteClick = async (event) => {
     event.preventDefault();
+    event.stopPropagation();
     if (!user) {
       setIsAuthModalOpen(true);
       return;
@@ -25,7 +28,14 @@ export default function RestaurantCard({ restaurant, compact = false }) {
 
     const result = await toggleFavorite(restaurantId);
     if (result.success && result.isFavorited) {
-      navigate('/profile');
+      focusRestaurant(restaurantData);
+      toast.success("Sevimlilarga qo'shildi ❤️", {
+        style: {
+          borderRadius: '16px',
+          background: 'rgba(15, 23, 42, 0.92)',
+          color: '#fff',
+        },
+      });
     }
   };
 

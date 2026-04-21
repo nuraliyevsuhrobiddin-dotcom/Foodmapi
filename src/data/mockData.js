@@ -31,7 +31,7 @@ export const MOCK_RESTAURANTS = [
     coordinates: [38.8650, 65.7900],
     menu: [
       { id: 'm4', name: 'Latte', price: '25,000 so\'m', category: 'Qahvalar', image: 'https://images.unsplash.com/photo-1510594247504-20d0f5077cc2?w=300&h=300&fit=crop' },
-      { id: 'm5', name: 'Cheesecake', price: '35,000 so\'m', category: 'Desertlar', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&h=300&fit=crop' }
+      { id: 'm5', name: 'Cheesecake', price: '35,000 so\'m', category: 'Shirinliklar', image: 'https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=300&h=300&fit=crop' }
     ]
   },
   {
@@ -41,7 +41,7 @@ export const MOCK_RESTAURANTS = [
     reviews: 532,
     distance: 0.8,
     description: 'Tezkor tayyorlanadigan mazzali burgerlar va fast food.',
-    type: 'Fast Food',
+    type: 'Tez taomlar',
     coverImage: 'https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=600&auto=format&fit=crop',
     address: 'Navoiy bog\'i ro\'parasi, Qarshi',
     hours: '10:00 - 02:00',
@@ -71,4 +71,4 @@ export const MOCK_RESTAURANTS = [
   }
 ];
 
-export const CATEGORIES = ['Hammasi', 'Saqlanganlar', 'Milliy', 'Fast Food', 'Kafe'];
+export const CATEGORIES = ['Barchasi', 'Saqlanganlar', 'Milliy', 'Tez taomlar', 'Kafe'];
