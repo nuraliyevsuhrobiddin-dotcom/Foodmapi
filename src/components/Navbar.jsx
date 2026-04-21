@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import { Bell, LogOut, MapPin, Menu, Moon, Settings, ShoppingBag, Sun, User, Utensils } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import useOverlay from '../hooks/useOverlay';
+import { OVERLAYS } from '../constants/overlay';
 import MobileDrawer from './navbar/MobileDrawer';
 
 const roleTitles = {
@@ -19,16 +21,18 @@ const roleDashboardPaths = {
 };
 
 export default function Navbar({ darkMode, toggleTheme }) {
-  const { user, setIsAuthModalOpen, logout, unreadNotificationsCount } = useAuth();
+  const { user, logout, unreadNotificationsCount } = useAuth();
   const { cartItems, setIsCartOpen } = useCart();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const drawerOverlay = useOverlay(OVERLAYS.DRAWER);
+  const authOverlay = useOverlay(OVERLAYS.AUTH);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
   const location = useLocation();
 
   const dashboardPath = roleDashboardPaths[user?.role] || '/admin';
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const isMobileMenuOpen = drawerOverlay.isOpen;
+  const closeMobileMenu = drawerOverlay.close;
 
   const iconButtonClass =
     'inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-white/20 hover:text-white active:scale-95';
@@ -116,7 +120,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
           {!user ? (
             <button
               type="button"
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={authOverlay.open}
               className={iconButtonClass}
               aria-label="Kirish"
             >
@@ -158,7 +162,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
           </button>
 
           <button
-            onClick={() => setIsMobileMenuOpen(true)}
+            onClick={drawerOverlay.open}
             className={`md:hidden ${iconButtonClass}`}
             aria-label="Menyu"
           >
@@ -224,7 +228,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
             </div>
           ) : (
             <button
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={authOverlay.open}
               className={`hidden md:inline-flex ${pillButtonClass} border-white/20 text-white/90`}
             >
               Kirish
@@ -237,7 +241,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
         isOpen={isMobileMenuOpen}
         onClose={closeMobileMenu}
         user={user}
-        onLogin={() => setIsAuthModalOpen(true)}
+        onLogin={authOverlay.open}
         onLogout={logout}
         unreadNotificationsCount={unreadNotificationsCount}
         dashboardPath={['admin', 'restaurant', 'courier'].includes(user?.role) ? dashboardPath : ''}

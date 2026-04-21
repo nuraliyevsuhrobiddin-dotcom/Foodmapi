@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import { useModal } from './ModalContext';
+import { OVERLAYS } from '../constants/overlay';
 
 const CartContext = createContext();
 
@@ -19,12 +21,12 @@ const normalizePrice = (price) => {
 };
 
 export const CartProvider = ({ children }) => {
+  const { activeOverlay, openOverlay, closeOverlay } = useModal();
   const [cartItems, setCartItems] = useState(() => {
     const saved = localStorage.getItem('cart');
     return saved ? JSON.parse(saved) : [];
   });
-  
-  const [isCartOpen, setIsCartOpen] = useState(false);
+  const isCartOpen = activeOverlay === OVERLAYS.CART;
 
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cartItems));
@@ -69,7 +71,8 @@ export const CartProvider = ({ children }) => {
   return (
     <CartContext.Provider value={{
       cartItems, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal,
-      isCartOpen, setIsCartOpen
+      isCartOpen,
+      setIsCartOpen: (open) => (open ? openOverlay(OVERLAYS.CART) : closeOverlay()),
     }}>
       {children}
     </CartContext.Provider>

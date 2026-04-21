@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ModalProvider } from './context/ModalContext';
 import AuthModal from './components/AuthModal';
 import CartSidebar from './components/CartSidebar';
 import { Toaster, toast } from 'react-hot-toast';
@@ -132,48 +133,50 @@ function App() {
   const toggleTheme = () => setDarkMode(!darkMode);
 
   return (
-    <AuthProvider>
-      <CartProvider>
-        <Router>
-          <div className="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
-            <Toaster
-              position="top-right"
-              reverseOrder={false}
-              toastOptions={{
-                duration: 3500,
-                style: {
-                  borderRadius: '18px',
-                  padding: '14px 16px',
-                  background: 'rgba(15, 23, 42, 0.94)',
-                  color: '#fff',
-                },
-              }}
-              containerStyle={{
-                top: 14,
-                left: 12,
-                right: 12,
-              }}
-            />
-            <SocketEventsBridge />
-            <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
-            <AuthModal />
-            <CartSidebar />
-            <main className="flex-1 flex flex-col pt-[56px] sm:pt-[64px]">
-            <Suspense fallback={<div className="flex-1 bg-background" />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/restaurant/:id" element={<RestaurantDetail />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
-                <Route path="/courier-dashboard" element={<CourierDashboard />} />
-                <Route path="/profile" element={<Profile />} />
-              </Routes>
-            </Suspense>
-          </main>
-        </div>
-      </Router>
-      </CartProvider>
-    </AuthProvider>
+    <ModalProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Router>
+            <div className="min-h-screen flex flex-col bg-background text-text transition-colors duration-300">
+              <Toaster
+                position="top-right"
+                reverseOrder={false}
+                toastOptions={{
+                  duration: 3500,
+                  style: {
+                    borderRadius: '18px',
+                    padding: '14px 16px',
+                    background: 'rgba(15, 23, 42, 0.94)',
+                    color: '#fff',
+                  },
+                }}
+                containerStyle={{
+                  top: 14,
+                  left: 12,
+                  right: 12,
+                }}
+              />
+              <SocketEventsBridge />
+              <Navbar darkMode={darkMode} toggleTheme={toggleTheme} />
+              <AuthModal />
+              <CartSidebar />
+              <main className="flex-1 flex flex-col pt-[56px] sm:pt-[64px]">
+              <Suspense fallback={<div className="flex-1 bg-background" />}>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/restaurant/:id" element={<RestaurantDetail />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/restaurant-dashboard" element={<RestaurantDashboard />} />
+                  <Route path="/courier-dashboard" element={<CourierDashboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Routes>
+              </Suspense>
+            </main>
+          </div>
+        </Router>
+        </CartProvider>
+      </AuthProvider>
+    </ModalProvider>
   );
 }
 

@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import { Navigate } from 'react-router-dom';
 import { Plus, Edit2, Trash2, MapPin, Loader2, Star, Clock, ClipboardList, Activity, CheckCircle2, XCircle } from 'lucide-react';
 import { useMemo } from 'react';
@@ -13,6 +14,8 @@ import { normalizeCategoryLabel } from '../utils/categoryUtils';
 import AdminHeader from '../components/admin/AdminHeader';
 import StatsGrid from '../components/admin/StatsGrid';
 import RestaurantCard from '../components/admin/RestaurantCard';
+import useOverlay from '../hooks/useOverlay';
+import { OVERLAYS } from '../constants/overlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -319,6 +322,8 @@ function LocationMarker({ position, setPosition }) {
 
 export default function Admin() {
   const { user, token, authLoading, refreshProfile, logout } = useAuth();
+  const { activeOverlay } = useModal();
+  const orderOverlay = useOverlay(OVERLAYS.ORDER);
   const canManageRestaurants = user?.role === 'admin';
   const canSeeOrders = ['admin', 'restaurant', 'courier'].includes(user?.role);
   const canAssignCouriers = ['admin', 'restaurant'].includes(user?.role);
@@ -394,6 +399,12 @@ export default function Admin() {
 
     return () => window.clearInterval(intervalId);
   }, []);
+
+  useEffect(() => {
+    if (activeOverlay !== OVERLAYS.ORDER && selectedOrder) {
+      setSelectedOrder(null);
+    }
+  }, [activeOverlay, selectedOrder]);
 
   const resetForm = () => {
     setFormData(defaultFormData);
@@ -3141,7 +3152,10 @@ export default function Admin() {
                   <button
                     key={order._id}
                     type="button"
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      orderOverlay.open();
+                    }}
                     className={`rounded-full border px-3 py-2 text-xs font-semibold hover:bg-rose-100 dark:bg-slate-900 dark:hover:bg-rose-950/40 ${
                       recentOrderIds.includes(order._id)
                         ? 'border-primary bg-primary/10 text-primary dark:border-primary/50 dark:text-primary'
@@ -3570,7 +3584,10 @@ export default function Admin() {
                         </div>
                         <button
                           type="button"
-                          onClick={() => setSelectedOrder(order)}
+                          onClick={() => {
+                            setSelectedOrder(order);
+                            orderOverlay.open();
+                          }}
                           className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors"
                         >
                           Batafsil
@@ -3614,7 +3631,10 @@ export default function Admin() {
 
         <OrderDetailModal
           selectedOrder={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
+          onClose={() => {
+            setSelectedOrder(null);
+            orderOverlay.close();
+          }}
           userRole={user.role}
           canAssignCouriers={canAssignCouriers}
           couriers={couriers}

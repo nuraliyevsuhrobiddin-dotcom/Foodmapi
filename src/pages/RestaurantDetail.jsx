@@ -8,6 +8,8 @@ import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { MOCK_RESTAURANTS } from '../data/mockData';
+import useOverlay from '../hooks/useOverlay';
+import { OVERLAYS } from '../constants/overlay';
 import HeroSection from '../components/HeroSection';
 import InfoCard from '../components/restaurant-detail/InfoCard';
 import NavigationSteps from '../components/restaurant-detail/NavigationSteps';
@@ -135,8 +137,10 @@ const getMediaTypeFromUrl = (url = '') => {
 
 export default function RestaurantDetail() {
   const { id } = useParams();
-  const { user, token, toggleFavorite, setIsAuthModalOpen } = useAuth();
-  const { addToCart, setIsCartOpen, cartItems } = useCart();
+  const { user, token, toggleFavorite } = useAuth();
+  const { addToCart, cartItems } = useCart();
+  const authOverlay = useOverlay(OVERLAYS.AUTH);
+  const cartOverlay = useOverlay(OVERLAYS.CART);
 
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -305,7 +309,7 @@ export default function RestaurantDetail() {
 
   const handleReviewSubmit = async (event) => {
     event.preventDefault();
-    if (!token) return setIsAuthModalOpen(true);
+    if (!token) return authOverlay.open();
     setSubmittingReview(true);
 
     try {
@@ -333,7 +337,7 @@ export default function RestaurantDetail() {
   };
 
   const handleFavoriteClick = async () => {
-    if (!user) return setIsAuthModalOpen(true);
+    if (!user) return authOverlay.open();
     await toggleFavorite(id);
   };
 
@@ -505,7 +509,7 @@ export default function RestaurantDetail() {
         <div className="pointer-events-auto w-full max-w-md rounded-[28px] border border-white/10 bg-slate-950/88 p-3 shadow-[0_-24px_60px_rgba(15,23,42,0.52)] backdrop-blur-xl">
           <button
             type="button"
-            onClick={() => setIsCartOpen(true)}
+            onClick={cartOverlay.open}
             className="flex w-full items-center justify-between gap-3 rounded-2xl bg-[#ffcc33] px-4 py-3.5 text-left text-sm font-semibold text-slate-950 transition-all duration-300 hover:brightness-105 active:scale-[0.99] sm:text-base"
           >
             <span className="min-w-0">

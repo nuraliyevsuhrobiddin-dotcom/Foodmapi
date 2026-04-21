@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { useModal } from './ModalContext';
+import { OVERLAYS } from '../constants/overlay';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -15,11 +17,12 @@ const persistToken = (nextToken) => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const { activeOverlay, openOverlay, closeOverlay } = useModal();
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [authLoading, setAuthLoading] = useState(() => !!localStorage.getItem('token'));
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
+  const isAuthModalOpen = activeOverlay === OVERLAYS.AUTH;
 
   const refreshNotifications = useCallback(async (currentToken = token) => {
     if (!currentToken) {
@@ -297,7 +300,8 @@ export const AuthProvider = ({ children }) => {
       refreshProfile, updateProfile, updateCourierAvailability, updatePassword,
       notifications, unreadNotificationsCount, refreshNotifications,
       markNotificationRead, markAllNotificationsRead,
-      isAuthModalOpen, setIsAuthModalOpen
+      isAuthModalOpen,
+      setIsAuthModalOpen: (open) => (open ? openOverlay(OVERLAYS.AUTH) : closeOverlay()),
     }}>
       {children}
     </AuthContext.Provider>

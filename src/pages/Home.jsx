@@ -6,6 +6,7 @@ import { Search, MapPin, Mic, Navigation, Sparkles, ChevronUp, SlidersHorizontal
 import { motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
+import { useModal } from '../context/ModalContext';
 import FilterPanel from '../components/FilterPanel';
 import RestaurantCard from '../components/RestaurantCard';
 import { MOCK_RESTAURANTS } from '../data/mockData';
@@ -164,6 +165,7 @@ export default function Home() {
   const [restaurantsLoading, setRestaurantsLoading] = useState(true);
   const [routeInfo, setRouteInfo] = useState(null);
   const { user, token } = useAuth();
+  const { activeOverlay } = useModal();
 
   const activeRestaurant = restaurants.find(
     (restaurant) => (restaurant._id || restaurant.id) === activeRestaurantId
@@ -370,6 +372,12 @@ export default function Home() {
     };
   }, [selectedCategory, searchQuery, userLocation, sortBy, pagination.page, token]);
 
+  useEffect(() => {
+    if (activeOverlay) {
+      setSheetExpanded(false);
+    }
+  }, [activeOverlay]);
+
   return (
     <div className="relative flex-1 overflow-hidden bg-[#0b1220]">
       <div className="absolute inset-0">
@@ -457,10 +465,10 @@ export default function Home() {
           })}
         </MapContainer>
 
-        <div className="pointer-events-none absolute inset-x-0 top-0 z-[410] h-44 bg-gradient-to-b from-slate-950/88 via-slate-950/28 to-transparent" />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-[410] h-52 bg-gradient-to-t from-slate-950 via-slate-950/28 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-44 bg-gradient-to-b from-slate-950/88 via-slate-950/28 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-52 bg-gradient-to-t from-slate-950 via-slate-950/28 to-transparent" />
 
-        <div className="absolute inset-x-0 top-0 z-[420] px-4 pb-3 pt-4 sm:px-6 lg:px-8 ios-safe-top">
+        <div className="absolute inset-x-0 top-0 z-20 px-4 pb-3 pt-4 sm:px-6 lg:px-8 ios-safe-top">
           <div className="mx-auto flex w-full max-w-6xl items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-3 hidden items-center gap-2 sm:flex">
@@ -509,7 +517,7 @@ export default function Home() {
         </div>
 
         {userLocation && activeRestaurant && routeInfo ? (
-          <div className="absolute right-4 top-28 z-[420] rounded-[24px] border border-white/10 bg-slate-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-xl sm:right-6 sm:top-6">
+          <div className="absolute right-4 top-28 z-20 rounded-[24px] border border-white/10 bg-slate-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-xl sm:right-6 sm:top-6">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Navigation size={16} className="text-[#ffcc33]" />
               {activeRestaurant.name}
@@ -531,9 +539,12 @@ export default function Home() {
         }}
         animate={{
           height: isDesktop ? 'calc(100dvh - 6rem)' : mobileSheetHeight,
+          opacity: activeOverlay ? 0 : 1,
+          y: activeOverlay ? 40 : 0,
         }}
         transition={{ type: 'spring', stiffness: 220, damping: 28 }}
-        className="absolute inset-x-0 bottom-0 z-[430] mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[34px] border border-white/10 bg-slate-950/78 shadow-[0_-20px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:max-w-xl md:left-6 md:top-24 md:mx-0 md:w-[430px] md:max-w-none md:rounded-[34px] lg:w-[460px]"
+        className={`absolute inset-x-0 bottom-0 z-30 mx-auto flex w-full max-w-md flex-col overflow-hidden rounded-t-[34px] border border-white/10 bg-slate-950/78 shadow-[0_-20px_60px_rgba(2,6,23,0.55)] backdrop-blur-2xl sm:max-w-xl md:left-6 md:top-24 md:mx-0 md:w-[430px] md:max-w-none md:rounded-[34px] lg:w-[460px] ${activeOverlay ? 'pointer-events-none' : ''}`}
+        aria-hidden={!!activeOverlay}
       >
         <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 pb-3 pt-3 sm:px-5">
           <div className="min-w-0 flex-1">

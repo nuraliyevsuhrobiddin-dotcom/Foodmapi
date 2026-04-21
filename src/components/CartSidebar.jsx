@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import CartModal from './CartModal';
+import useOverlay from '../hooks/useOverlay';
+import { OVERLAYS } from '../constants/overlay';
 
 const normalizePhoneInput = (value) => {
   const trimmed = value.replace(/[^\d+\s()-]/g, '');
@@ -33,7 +35,9 @@ const normalizeTextField = (value) => value.trim().replace(/\s+/g, ' ');
 
 export default function CartSidebar() {
   const { isCartOpen, setIsCartOpen, cartItems, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
-  const { user, token, setIsAuthModalOpen } = useAuth();
+  const { user, token } = useAuth();
+  const cartOverlay = useOverlay(OVERLAYS.CART);
+  const authOverlay = useOverlay(OVERLAYS.AUTH);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerPhone, setCustomerPhone] = useState(user?.phone || '');
   const [deliveryLabel, setDeliveryLabel] = useState('');
@@ -111,7 +115,7 @@ export default function CartSidebar() {
     
     if (!user) {
       setIsCartOpen(false);
-      setIsAuthModalOpen(true);
+      authOverlay.open();
       return toast.error("Buyurtma berish uchun tizimga kirish talab etiladi.");
     }
 
@@ -227,8 +231,8 @@ export default function CartSidebar() {
 
   return (
     <CartModal
-      isOpen={isCartOpen}
-      onClose={() => setIsCartOpen(false)}
+      isOpen={cartOverlay.isOpen || isCartOpen}
+      onClose={cartOverlay.close}
       cartItems={cartItems}
       removeFromCart={removeFromCart}
       updateQuantity={updateQuantity}

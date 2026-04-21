@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import useOverlay from '../hooks/useOverlay';
+import { OVERLAYS } from '../constants/overlay';
 import { X, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 
 export default function AuthModal() {
-  const { isAuthModalOpen, setIsAuthModalOpen, login, register } = useAuth();
+  const { login, register } = useAuth();
+  const authOverlay = useOverlay(OVERLAYS.AUTH);
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({ username: '', email: '', phone: '', password: '' });
   const [error, setError] = useState('');
@@ -25,24 +28,24 @@ export default function AuthModal() {
 
     setLoading(false);
     if (res.success) {
-      setIsAuthModalOpen(false);
+      authOverlay.close();
     } else {
       setError(res.message);
     }
   };
 
-  if (!isAuthModalOpen) return null;
+  if (!authOverlay.isOpen) return null;
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-end justify-center px-3 py-3 sm:items-center sm:px-4">
+      <div className="fixed inset-0 z-50 flex items-end justify-center px-3 py-3 sm:items-center sm:px-4">
         {/* Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => setIsAuthModalOpen(false)}
-          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          onClick={authOverlay.close}
+          className="absolute inset-0 z-40 bg-black/50 backdrop-blur-sm"
         />
 
         {/* Modal */}
@@ -50,10 +53,10 @@ export default function AuthModal() {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl p-5 sm:p-8 overflow-hidden ios-safe-bottom"
+          className="relative z-50 w-full max-w-md bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl p-5 sm:p-8 overflow-hidden ios-safe-bottom"
         >
           <button 
-            onClick={() => setIsAuthModalOpen(false)}
+            onClick={authOverlay.close}
             className="absolute top-4 right-4 touch-target flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
           >
             <X size={18} />
