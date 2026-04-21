@@ -13,6 +13,15 @@ dist-ssr
 *.local
 .env
 backend/.env
+tmp-*.png
+check-*.png
+final-*.png
+desktop-*.png
+vite-mobile*.log
+backend/server-live*.log
+lint.txt
+backend/uploads/*
+!backend/uploads/.gitkeep
 
 # Editor directories and files
 .vscode/*

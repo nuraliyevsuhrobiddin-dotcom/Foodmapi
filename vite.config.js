@@ -1,7 +1,10 @@
+import { createRequire } from 'node:module'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const require = createRequire(import.meta.url)
+const tailwindcss = require('@tailwindcss/vite').default
 
 // https://vite.dev/config/
 export default defineConfig({

@@ -1,4 +1,75 @@
 const Restaurant = require('../models/Restaurant');
+const { createAuditLog } = require('../utils/auditLog');
+const {
+  findInvalidMenuItems,
+  normalizeMenuItems,
+  sanitizeRestaurantMenu,
+} = require('../utils/menuPricing');
+
+const normalizeCategoryLabel = (value) => {
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  const categoryMap = {
+    milliy: 'Milliy',
+    'milliy taomlar': 'Milliy',
+    national: 'Milliy',
+    kafe: 'Kafe',
+    cafe: 'Kafe',
+    coffee: 'Kafe',
+    'coffee shop': 'Kafe',
+    coffeeshop: 'Kafe',
+    'fast food': 'Fast Food',
+    fastfood: 'Fast Food',
+    'fast-food': 'Fast Food',
+  };
+
+  return categoryMap[normalizedValue] || String(value || '').trim();
+};
+
+const normalizeRestaurantCategoryPayload = (restaurant) => {
+  const sanitizedRestaurant = sanitizeRestaurantMenu(restaurant);
+  const normalizedCategories = (sanitizedRestaurant.category || [])
+    .map(normalizeCategoryLabel)
+    .filter(Boolean)
+    .filter((category, index, array) => array.indexOf(category) === index);
+
+  return {
+    ...sanitizedRestaurant,
+    category: normalizedCategories,
+  };
+};
+
+const buildCategoryQuery = (categoryQuery) => {
+  if (!categoryQuery) {
+    return null;
+  }
+
+  const normalizedCategories = categoryQuery
+    .split(',')
+    .map(normalizeCategoryLabel)
+    .filter(Boolean);
+
+  if (normalizedCategories.length === 0) {
+    return null;
+  }
+
+  return {
+    $in: normalizedCategories.map((category) => new RegExp(`^${category}$`, 'i')),
+  };
+};
+
+const formatRestaurantDistance = (restaurant, lat, lng) => {
+  if (!restaurant?.location?.coordinates?.length) {
+    return normalizeRestaurantCategoryPayload(restaurant);
+  }
+
+  const [restaurantLng, restaurantLat] = restaurant.location.coordinates;
+  const distanceKm = Math.hypot(restaurantLat - lat, restaurantLng - lng) * 111;
+
+  return {
+    ...normalizeRestaurantCategoryPayload(restaurant),
+    distance: Number(distanceKm.toFixed(1)),
+  };
+};
 
 // @desc    Barcha restoranlarni olish
 // @route   GET /api/restaurants
@@ -13,9 +84,9 @@ const getRestaurants = async (req, res, next) => {
     // Filter criteria
     let query = {};
     console.log("Req Query:", req.query);
-    if (req.query.category) {
-      const categoriesArray = req.query.category.split(',');
-      query.category = { $in: categoriesArray };
+    const categoryQuery = buildCategoryQuery(req.query.category);
+    if (categoryQuery) {
+      query.category = categoryQuery;
     }
     
     // Matndan qidirish (regex) - Nomi, Manzili yoki Menyu taomlari bo'yicha
@@ -46,7 +117,7 @@ const getRestaurants = async (req, res, next) => {
         total,
         pages: Math.ceil(total / limit)
       },
-      data: restaurants
+      data: restaurants.map(normalizeRestaurantCategoryPayload)
     });
   } catch (error) {
     next(error);
@@ -65,7 +136,7 @@ const getRestaurant = async (req, res, next) => {
       throw new Error(`Restoran topilmadi: ${req.params.id}`);
     }
 
-    res.json({ success: true, data: restaurant });
+    res.json({ success: true, data: normalizeRestaurantCategoryPayload(restaurant) });
   } catch (error) {
     next(error);
   }
@@ -86,22 +157,41 @@ const getNearRestaurants = async (req, res, next) => {
     // Radius standart qilib 10km ga sozlangan (metrda o'lchanadi)
     const distanceInMeters = radius ? parseInt(radius) * 1000 : 10000;
 
-    const restaurants = await Restaurant.find({
+    const parsedLat = parseFloat(lat);
+    const parsedLng = parseFloat(lng);
+
+    let query = {
       location: {
         $near: {
           $maxDistance: distanceInMeters,
           $geometry: {
             type: 'Point',
-            coordinates: [parseFloat(lng), parseFloat(lat)]
+            coordinates: [parsedLng, parsedLat]
           }
         }
       }
-    });
+    };
+
+    const categoryQuery = buildCategoryQuery(req.query.category);
+    if (categoryQuery) {
+      query.category = categoryQuery;
+    }
+
+    if (req.query.search) {
+      const searchRegex = { $regex: req.query.search, $options: 'i' };
+      query.$or = [
+        { name: searchRegex },
+        { address: searchRegex },
+        { 'menu.name': searchRegex }
+      ];
+    }
+
+    const restaurants = await Restaurant.find(query);
 
     res.json({
       success: true,
       count: restaurants.length,
-      data: restaurants
+      data: restaurants.map((restaurant) => formatRestaurantDistance(restaurant, parsedLat, parsedLng))
     });
   } catch (error) {
     next(error);
@@ -114,18 +204,51 @@ const getNearRestaurants = async (req, res, next) => {
 const createRestaurant = async (req, res, next) => {
   try {
     // Check if coordinates provided and fix format to GeoJSON 'Point' if frontend sends separately
-    if (req.body.lng && req.body.lat) {
+    if (req.body.lng !== undefined && req.body.lat !== undefined) {
       req.body.location = {
         type: 'Point',
         coordinates: [req.body.lng, req.body.lat]
       };
     }
 
+    if (!req.body.owner && req.user?.role === 'restaurant') {
+      req.body.owner = req.user._id;
+    }
+
+    if (req.body.category !== undefined) {
+      req.body.category = []
+        .concat(req.body.category)
+        .map(normalizeCategoryLabel)
+        .filter(Boolean);
+    }
+
+    if (req.body.menu !== undefined) {
+      const invalidMenuItems = findInvalidMenuItems(req.body.menu);
+      if (invalidMenuItems.length > 0) {
+        res.status(400);
+        throw new Error(
+          `Menu narxi noto'g'ri: ${invalidMenuItems.map((item) => item.name).join(', ')}`
+        );
+      }
+
+      req.body.menu = normalizeMenuItems(req.body.menu);
+    }
+
     const restaurant = await Restaurant.create(req.body);
+
+    await createAuditLog({
+      actor: req.user?._id,
+      actorRole: req.user?.role,
+      action: 'create_restaurant',
+      entityType: 'Restaurant',
+      entityId: restaurant._id,
+      message: `${req.user?.username || 'User'} yangi restoran qo'shdi`,
+      metadata: { name: restaurant.name },
+    });
 
     res.status(201).json({
       success: true,
-      data: restaurant
+      data: normalizeRestaurantCategoryPayload(restaurant)
     });
   } catch (error) {
     next(error);
@@ -144,11 +267,30 @@ const updateRestaurant = async (req, res, next) => {
       throw new Error(`Restoran topilmadi: ${req.params.id}`);
     }
 
-    if (req.body.lng && req.body.lat) {
+    if (req.body.lng !== undefined && req.body.lat !== undefined) {
        req.body.location = {
          type: 'Point',
          coordinates: [req.body.lng, req.body.lat]
        };
+    }
+
+    if (req.body.category !== undefined) {
+      req.body.category = []
+        .concat(req.body.category)
+        .map(normalizeCategoryLabel)
+        .filter(Boolean);
+    }
+
+    if (req.body.menu !== undefined) {
+      const invalidMenuItems = findInvalidMenuItems(req.body.menu);
+      if (invalidMenuItems.length > 0) {
+        res.status(400);
+        throw new Error(
+          `Menu narxi noto'g'ri: ${invalidMenuItems.map((item) => item.name).join(', ')}`
+        );
+      }
+
+      req.body.menu = normalizeMenuItems(req.body.menu);
     }
 
     restaurant = await Restaurant.findByIdAndUpdate(req.params.id, req.body, {
@@ -156,7 +298,17 @@ const updateRestaurant = async (req, res, next) => {
       runValidators: true
     });
 
-    res.json({ success: true, data: restaurant });
+    await createAuditLog({
+      actor: req.user?._id,
+      actorRole: req.user?.role,
+      action: 'update_restaurant',
+      entityType: 'Restaurant',
+      entityId: restaurant._id,
+      message: `${req.user?.username || 'User'} restoran ma'lumotini yangiladi`,
+      metadata: { name: restaurant.name },
+    });
+
+    res.json({ success: true, data: normalizeRestaurantCategoryPayload(restaurant) });
   } catch (error) {
     next(error);
   }
@@ -175,6 +327,16 @@ const deleteRestaurant = async (req, res, next) => {
     }
 
     await restaurant.deleteOne();
+
+    await createAuditLog({
+      actor: req.user?._id,
+      actorRole: req.user?.role,
+      action: 'delete_restaurant',
+      entityType: 'Restaurant',
+      entityId: req.params.id,
+      message: `${req.user?.username || 'User'} restoran o'chirdi`,
+      metadata: { name: restaurant.name },
+    });
 
     res.json({ success: true, data: {} });
   } catch (error) {

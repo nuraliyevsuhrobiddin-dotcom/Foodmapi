@@ -12,6 +12,12 @@
 }
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
   :root {
     --primary: #ff6b35;
     --secondary: #1e293b;
@@ -34,6 +40,85 @@
 @layer base {
   body {
     @apply bg-background text-text antialiased;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+    font-feature-settings: "ss01" on, "cv02" on, "cv03" on;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  button,
+  [role="button"],
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  button,
+  [role="button"] {
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+    border-radius: 1rem;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+  }
+}
+
+@layer utilities {
+  .ios-safe-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+
+  .ios-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .ios-safe-bottom-lg {
+    padding-bottom: max(1.5rem, calc(env(safe-area-inset-bottom) + 0.75rem));
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .snap-x {
+    scroll-snap-type: x mandatory;
+  }
+
+  .snap-start {
+    scroll-snap-align: start;
   }
 }
 
@@ -62,4 +147,61 @@
 }
 .leaflet-popup-tip {
   @apply dark:bg-slate-900;
+}
+.leaflet-popup-content {
+  margin: 12px;
+}
+.custom-popup .leaflet-popup-content-wrapper {
+  border-radius: 1rem;
+}
+.restaurant-marker-wrapper {
+  background: transparent;
+  border: 0;
+}
+.restaurant-marker {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  border: 3px solid white;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.22);
+  position: relative;
+}
+.restaurant-marker span {
+  position: absolute;
+  inset: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.95);
+}
+.restaurant-marker.marker-active {
+  transform: scale(1.15);
+}
+.restaurant-marker.marker-active::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 9999px;
+  border: 2px solid rgba(255, 107, 53, 0.35);
+  animation: marker-pulse 1.8s ease-out infinite;
+}
+.marker-default {
+  background: linear-gradient(135deg, #ff6b35, #fb923c);
+}
+.marker-cafe {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+.marker-fast-food {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+.marker-national {
+  background: linear-gradient(135deg, #10b981, #22c55e);
+}
+@keyframes marker-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+  }
 }

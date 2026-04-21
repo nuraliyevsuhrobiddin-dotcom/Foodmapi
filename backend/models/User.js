@@ -14,6 +14,11 @@ const userSchema = new mongoose.Schema(
       unique: true,
       lowercase: true,
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     password: {
       type: String,
       required: [true, 'Iltimos, parolni kiriting'],
@@ -22,8 +27,31 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ['customer', 'restaurant', 'courier', 'admin'],
+      default: 'customer',
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Restaurant',
+      default: null,
+    },
+    isAvailable: {
+      type: Boolean,
+      default: false,
+    },
+    vehicleType: {
+      type: String,
+      trim: true,
+      default: '',
+    },
+    currentLocation: {
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      updatedAt: { type: Date, default: null },
     },
     favorites: [
       {

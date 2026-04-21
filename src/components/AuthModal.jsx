@@ -6,7 +6,7 @@ import { X, Mail, Lock, User as UserIcon, Eye, EyeOff } from 'lucide-react';
 export default function AuthModal() {
   const { isAuthModalOpen, setIsAuthModalOpen, login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [formData, setFormData] = useState({ username: '', email: '', phone: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +20,7 @@ export default function AuthModal() {
     if (isLogin) {
       res = await login(formData.email, formData.password);
     } else {
-      res = await register(formData.username, formData.email, formData.password);
+      res = await register(formData.username, formData.email, formData.password, formData.phone);
     }
 
     setLoading(false);
@@ -35,7 +35,7 @@ export default function AuthModal() {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+      <div className="fixed inset-0 z-[100] flex items-end justify-center px-3 py-3 sm:items-center sm:px-4">
         {/* Backdrop */}
         <motion.div 
           initial={{ opacity: 0 }}
@@ -50,11 +50,11 @@ export default function AuthModal() {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-6 sm:p-8 overflow-hidden"
+          className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[28px] sm:rounded-3xl shadow-2xl p-5 sm:p-8 overflow-hidden ios-safe-bottom"
         >
           <button 
             onClick={() => setIsAuthModalOpen(false)}
-            className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
+            className="absolute top-4 right-4 touch-target flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-white transition-colors"
           >
             <X size={18} />
           </button>
@@ -76,17 +76,28 @@ export default function AuthModal() {
             )}
 
             {!isLogin && (
-              <div className="relative">
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                <input 
-                  required
-                  type="text" 
-                  placeholder="Ismingiz" 
-                  value={formData.username}
-                  onChange={e => setFormData({...formData, username: e.target.value})}
-                  className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-primary transition-colors dark:text-white"
-                />
-              </div>
+              <>
+                <div className="relative">
+                  <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input 
+                    required
+                    type="text" 
+                    placeholder="Ismingiz" 
+                    value={formData.username}
+                    onChange={e => setFormData({...formData, username: e.target.value})}
+                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary transition-colors dark:text-white"
+                  />
+                </div>
+                <div className="relative">
+                  <input 
+                    type="tel" 
+                    placeholder="Telefon raqam" 
+                    value={formData.phone}
+                    onChange={e => setFormData({...formData, phone: e.target.value})}
+                    className="w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary transition-colors dark:text-white"
+                  />
+                </div>
+              </>
             )}
 
             <div className="relative">
@@ -97,7 +108,7 @@ export default function AuthModal() {
                 placeholder="Email pochta" 
                 value={formData.email}
                 onChange={e => setFormData({...formData, email: e.target.value})}
-                className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-primary transition-colors dark:text-white"
+                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary transition-colors dark:text-white"
               />
             </div>
 
@@ -109,12 +120,12 @@ export default function AuthModal() {
                 placeholder="Parol" 
                 value={formData.password}
                 onChange={e => setFormData({...formData, password: e.target.value})}
-                className="w-full pl-11 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:border-primary transition-colors dark:text-white"
+                className="w-full pl-11 pr-12 py-3.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:border-primary transition-colors dark:text-white"
               />
               <button 
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                className="absolute right-2 top-1/2 touch-target -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors inline-flex items-center justify-center"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>

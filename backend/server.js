@@ -13,6 +13,8 @@ const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const orderRoutes = require('./routes/orderRoutes');
+const promoCodeRoutes = require('./routes/promoCodeRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
 
 // Load env vars
 const path = require('path');
@@ -35,6 +37,23 @@ app.set('io', io);
 
 io.on('connection', (socket) => {
   console.log('Yangi foydalanuvchi ulandi:', socket.id);
+
+  socket.on('register_session', (payload = {}) => {
+    const { userId, role, restaurantId } = payload;
+
+    if (userId) {
+      socket.join(`user:${userId}`);
+    }
+
+    if (role) {
+      socket.join(`role:${role}`);
+    }
+
+    if (restaurantId) {
+      socket.join(`restaurant:${restaurantId}`);
+    }
+  });
+
   socket.on('disconnect', () => {
     console.log('Foydalanuvchi uzildi:', socket.id);
   });
@@ -62,6 +81,8 @@ app.use('/api/restaurants', restaurantRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/promocodes', promoCodeRoutes);
+app.use('/api/categories', categoryRoutes);
 
 // API Health Check
 app.get('/api', (req, res) => {

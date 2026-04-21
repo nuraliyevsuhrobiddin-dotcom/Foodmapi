@@ -3,7 +3,6 @@ const router = express.Router();
 const multer = require('multer');
 const { v2: cloudinary } = require('cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
-const path = require('path');
 const { protect, admin } = require('../middleware/authMiddleware');
 
 // Cloudinary konfiguratsiyasi (.env dan oladi)

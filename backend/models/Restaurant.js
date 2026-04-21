@@ -1,8 +1,16 @@
 const mongoose = require('mongoose');
+const { parseMenuPrice } = require('../utils/menuPricing');
 
 const menuItemSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  price: { type: String, required: true },
+  price: {
+    type: String,
+    required: true,
+    validate: {
+      validator: (value) => parseMenuPrice(value) !== null,
+      message: 'Menu narxi raqam bo\'lishi kerak'
+    }
+  },
   image: { type: String },
   description: { type: String }
 });
@@ -28,6 +36,16 @@ const restaurantSchema = new mongoose.Schema(
     address: {
       type: String,
       required: [true, 'Manzilni kiriting']
+    },
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    telegramChatId: {
+      type: String,
+      trim: true,
+      default: ''
     },
     image: {
       type: String,

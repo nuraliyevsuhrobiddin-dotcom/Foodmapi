@@ -13,7 +13,7 @@ const generateToken = (id) => {
 // @access  Public
 const registerUser = async (req, res, next) => {
   try {
-    const { username, email, password, role } = req.body;
+    const { username, email, password, phone } = req.body;
 
     if (!username || !email || !password) {
       res.status(400);
@@ -32,8 +32,9 @@ const registerUser = async (req, res, next) => {
     const user = await User.create({
       username,
       email,
+      phone: phone || '',
       password,
-      role: 'user', // Qat'iy user
+      role: 'customer',
     });
 
     if (user) {
@@ -41,7 +42,9 @@ const registerUser = async (req, res, next) => {
         _id: user.id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         role: user.role,
+        restaurantId: user.restaurantId,
         token: generateToken(user._id),
       });
     } else {
@@ -68,7 +71,9 @@ const loginUser = async (req, res, next) => {
         _id: user.id,
         username: user.username,
         email: user.email,
+        phone: user.phone,
         role: user.role,
+        restaurantId: user.restaurantId,
         token: generateToken(user._id),
       });
     } else {

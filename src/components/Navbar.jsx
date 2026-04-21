@@ -1,25 +1,38 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Moon, Sun, User, Utensils, LogOut, Settings, Menu, X, ShoppingBag } from 'lucide-react';
+import { MapPin, Moon, Sun, User, Utensils, LogOut, Settings, Menu, X, ShoppingBag, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 
+const roleTitles = {
+  admin: 'Boshqaruv Paneli',
+  restaurant: 'Restoran Paneli',
+  courier: 'Kuryer Paneli',
+};
+
+const roleDashboardPaths = {
+  admin: '/admin',
+  restaurant: '/restaurant-dashboard',
+  courier: '/courier-dashboard',
+};
+
 export default function Navbar({ darkMode, toggleTheme }) {
-  const { user, setIsAuthModalOpen, logout } = useAuth();
+  const { user, setIsAuthModalOpen, logout, unreadNotificationsCount } = useAuth();
   const { cartItems, setIsCartOpen } = useCart();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const dashboardPath = roleDashboardPaths[user?.role] || '/admin';
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
   return (
-    <nav className="fixed top-0 left-0 right-0 h-[72px] z-50 bg-white/70 dark:bg-[#0f172a]/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 transition-colors duration-300">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between">
+    <nav className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/80 backdrop-blur-xl transition-colors duration-300 dark:border-slate-800/80 dark:bg-[#0f172a]/80 ios-safe-top">
+      <div className="max-w-7xl mx-auto h-[72px] px-3 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all duration-300">
-            <Utensils size={24} />
+          <div className="w-11 h-11 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all duration-300">
+            <Utensils size={22} />
           </div>
-          <span className="text-xl font-bold tracking-tight text-secondary">
+          <span className="text-lg sm:text-xl font-bold tracking-tight text-secondary">
             Food<span className="text-primary">Map</span>
           </span>
         </Link>
@@ -34,11 +47,11 @@ export default function Navbar({ darkMode, toggleTheme }) {
           </Link>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <motion.button 
             whileTap={{ scale: 0.9 }}
             onClick={toggleTheme} 
-            className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-text-muted transition-colors"
+            className="touch-target inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-text-muted transition-colors"
             aria-label="Toggle theme"
           >
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
@@ -54,8 +67,20 @@ export default function Navbar({ darkMode, toggleTheme }) {
                   {user.username}
                 </span>
               </Link>
-              {user.role === 'admin' && (
-                <Link to="/admin" className="p-2 rounded-full bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title="Boshqaruv Paneli">
+              <Link
+                to="/profile"
+                className="relative touch-target inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
+                title="Bildirishnomalar"
+              >
+                <Bell size={18} />
+                {unreadNotificationsCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-[#0f172a]">
+                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
+                  </span>
+                )}
+              </Link>
+              {['admin', 'restaurant', 'courier'].includes(user.role) && (
+                <Link to={dashboardPath} className="touch-target inline-flex items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors" title={roleTitles[user.role] || 'Panel'}>
                   <Settings size={18} />
                 </Link>
               )}
@@ -80,7 +105,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
           {/* Cart Icon */}
           <button 
             onClick={() => setIsCartOpen(true)}
-            className="p-2 relative rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
+            className="touch-target relative inline-flex items-center justify-center rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors"
           >
             <ShoppingBag size={22} />
             {cartItems.length > 0 && (
@@ -93,7 +118,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
           {/* Mobile Menu Toggle */}
           <button 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 -mr-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="md:hidden touch-target -mr-1 inline-flex items-center justify-center rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -107,9 +132,9 @@ export default function Navbar({ darkMode, toggleTheme }) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] shadow-xl overflow-hidden"
+            className="md:hidden border-b border-slate-200 dark:border-slate-800 bg-white/98 dark:bg-[#0f172a]/98 shadow-xl overflow-hidden"
           >
-            <div className="px-4 py-6 space-y-4 flex flex-col items-center text-center">
+            <div className="px-4 pt-2 pb-6 ios-safe-bottom space-y-3 flex flex-col items-center text-center">
               <Link onClick={closeMobileMenu} to="/" className="w-full py-3 px-4 rounded-xl font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 border border-slate-100 dark:border-slate-800 flex justify-center items-center gap-2">
                  <MapPin size={18} />
                  Xarita
@@ -125,10 +150,14 @@ export default function Navbar({ darkMode, toggleTheme }) {
                     <User size={18} />
                     Mening Profilim ({user.username})
                   </Link>
-                  {user.role === 'admin' && (
-                    <Link onClick={closeMobileMenu} to="/admin" className="w-full py-3 px-4 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex justify-center items-center gap-2">
+                  <Link onClick={closeMobileMenu} to="/profile" className="w-full py-3 px-4 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex justify-center items-center gap-2">
+                    <Bell size={18} />
+                    Bildirishnomalar {unreadNotificationsCount > 0 ? `(${unreadNotificationsCount})` : ''}
+                  </Link>
+                  {['admin', 'restaurant', 'courier'].includes(user.role) && (
+                    <Link onClick={closeMobileMenu} to={dashboardPath} className="w-full py-3 px-4 rounded-xl font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex justify-center items-center gap-2">
                       <Settings size={18} />
-                      Boshqaruv Paneli
+                      {roleTitles[user.role] || 'Panel'}
                     </Link>
                   )}
                   <button 

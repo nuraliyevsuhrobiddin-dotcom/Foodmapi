@@ -5,6 +5,19 @@ const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
+const normalizePrice = (price) => {
+  if (typeof price === 'number') {
+    return Number.isFinite(price) ? price : 0;
+  }
+
+  if (typeof price === 'string') {
+    const parsed = Number(price.replace(/[^\d.,-]/g, '').replace(/,/g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+};
+
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState(() => {
     const saved = localStorage.getItem('cart');
@@ -18,14 +31,19 @@ export const CartProvider = ({ children }) => {
   }, [cartItems]);
 
   const addToCart = (item) => {
+    const normalizedItem = {
+      ...item,
+      price: normalizePrice(item.price),
+    };
+
     setCartItems(prev => {
-      const existing = prev.find(i => i._id === item._id);
+      const existing = prev.find(i => i._id === normalizedItem._id);
       if (existing) {
-        return prev.map(i => i._id === item._id ? { ...i, quantity: i.quantity + 1 } : i);
+        return prev.map(i => i._id === normalizedItem._id ? { ...i, quantity: i.quantity + 1 } : i);
       }
-      return [...prev, { ...item, quantity: 1 }];
+      return [...prev, { ...normalizedItem, quantity: 1 }];
     });
-    toast.success(`${item.name} savatga qo'shildi!`, { position: 'bottom-center' });
+    toast.success(`${normalizedItem.name} savatga qo'shildi!`, { position: 'bottom-center' });
   };
 
   const removeFromCart = (itemId) => {
@@ -46,7 +64,7 @@ export const CartProvider = ({ children }) => {
     setCartItems([]);
   };
 
-  const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const cartTotal = cartItems.reduce((sum, item) => sum + (normalizePrice(item.price) * item.quantity), 0);
 
   return (
     <CartContext.Provider value={{

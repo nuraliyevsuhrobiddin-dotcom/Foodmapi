@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Clock, Navigation, Info, Heart, Loader2, Map as MapIcon, Image as ImageIcon, Send } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -7,6 +7,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { MOCK_RESTAURANTS } from '../data/mockData';
 
 // Marker definitions
 const customMarkerIcon = new L.Icon({
@@ -53,12 +54,13 @@ function RoutingMachine({ start, end, onRouteFound }) {
           styles: [{ color: '#f97316', weight: 5, opacity: 0.8 }]
         }
       }).on('routesfound', function(e) {
-        if (e.routes && e.routes[0] && onRouteFound) {
-          const route = e.routes[0];
-          const distMap = (route.summary.totalDistance / 1000).toFixed(1);
-          const timeMap = Math.round(route.summary.totalTime / 60);
-          onRouteFound({ distance: distMap, time: timeMap });
-        }
+        const route = e.routes?.[0];
+        if (!route || !onRouteFound) return;
+
+        const distance = (route.summary.totalDistance / 1000).toFixed(2);
+        const time = Math.round(route.summary.totalTime / 60);
+
+        onRouteFound({ distance, time });
       }).addTo(map);
     };
 
@@ -68,14 +70,28 @@ function RoutingMachine({ start, end, onRouteFound }) {
       isMounted = false;
       try {
         if (routingControl) map.removeControl(routingControl);
-      } catch (_error) {}
+      } catch {
+        return undefined;
+      }
     };
-  }, [map, start, end]);
+  }, [map, start, end, onRouteFound]);
 
   return null;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || '';
+
+const normalizeMockRestaurant = (restaurant) => ({
+  ...restaurant,
+  _id: restaurant.id,
+  image: restaurant.coverImage,
+  category: restaurant.type ? [restaurant.type] : [],
+  workingHours: restaurant.hours,
+  location: {
+    type: 'Point',
+    coordinates: [restaurant.coordinates[1], restaurant.coordinates[0]],
+  },
+});
 
 export default function RestaurantDetail() {
   const { id } = useParams();
@@ -98,39 +114,70 @@ export default function RestaurantDetail() {
 
   // Computed definitions
   const isFavorited = user?.favorites?.some(f => f._id === id || f === id) || false;
-  const gallery = restaurant?.gallery?.length > 0 ? (restaurant.gallery.includes(restaurant.image) ? restaurant.gallery : [restaurant.image, ...restaurant.gallery]) : [restaurant?.image];
+  const gallery = useMemo(() => {
+    if (restaurant?.gallery?.length > 0) {
+      return restaurant.gallery.includes(restaurant.image)
+        ? restaurant.gallery
+        : [restaurant.image, ...restaurant.gallery];
+    }
+
+    return [restaurant?.image];
+  }, [restaurant]);
 
   // Fetch restaurant details
-  const fetchRestaurant = async () => {
+  const fetchRestaurant = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 4500);
+
     try {
-      const res = await fetch(`${API_URL}/api/restaurants/${id}`);
+      const res = await fetch(`${API_URL}/api/restaurants/${id}`, { signal: controller.signal });
       const data = await res.json();
+      window.clearTimeout(timeoutId);
       if (data.success) {
         setRestaurant(data.data);
+      } else {
+        const fallbackRestaurant = MOCK_RESTAURANTS
+          .map(normalizeMockRestaurant)
+          .find((item) => item._id === id || item.id === id);
+        setRestaurant(fallbackRestaurant || null);
       }
     } catch (err) {
       console.error(err);
+      const fallbackRestaurant = MOCK_RESTAURANTS
+        .map(normalizeMockRestaurant)
+        .find((item) => item._id === id || item.id === id);
+      setRestaurant(fallbackRestaurant || null);
     } finally {
+      window.clearTimeout(timeoutId);
       setLoading(false);
     }
-  };
+  }, [id]);
 
-  const fetchReviews = async () => {
+  const fetchReviews = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 4500);
+
     try {
-      const res = await fetch(`${API_URL}/api/restaurants/${id}/reviews`);
+      const res = await fetch(`${API_URL}/api/restaurants/${id}/reviews`, { signal: controller.signal });
       const data = await res.json();
+      window.clearTimeout(timeoutId);
       if (data.success) {
         setReviews(data.data);
+      } else {
+        setReviews([]);
       }
     } catch (err) {
       console.error(err);
+      setReviews([]);
+    } finally {
+      window.clearTimeout(timeoutId);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     fetchRestaurant();
     fetchReviews();
-  }, [id]);
+  }, [fetchRestaurant, fetchReviews]);
 
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
@@ -190,7 +237,7 @@ export default function RestaurantDetail() {
   };
 
   if (loading) {
-    return <div className="flex-1 flex justify-center items-center"><Loader2 className="animate-spin text-primary" size={40} /></div>;
+    return <div className="flex-1 flex justify-center items-center px-4"><Loader2 className="animate-spin text-primary" size={40} /></div>;
   }
 
   if (!restaurant) {
@@ -211,7 +258,7 @@ export default function RestaurantDetail() {
   return (
     <div className="flex-1 overflow-y-auto bg-background pb-12">
       {/* Header Image or Map */}
-      <div className="relative h-[40vh] sm:h-[50vh] w-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+      <div className="relative h-[38vh] sm:h-[50vh] w-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
         
         <AnimatePresence mode="wait">
           {!showMap ? (
@@ -248,14 +295,14 @@ export default function RestaurantDetail() {
         </AnimatePresence>
 
         {/* Top Navigation Overlay */}
-        <div className="absolute top-0 left-0 right-0 p-4 sm:p-6 lg:px-8 max-w-7xl mx-auto flex justify-between items-center z-10">
+        <div className="absolute top-0 left-0 right-0 p-3 sm:p-6 lg:px-8 max-w-7xl mx-auto flex justify-between items-start z-10 ios-safe-top">
           <Link 
             to="/" 
-            className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 transition-colors shadow-sm"
+            className="touch-target rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 transition-colors shadow-sm"
           >
             <ArrowLeft size={20} />
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {routeInfo && showMap && (
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
@@ -268,13 +315,13 @@ export default function RestaurantDetail() {
             )}
             <button 
               onClick={() => setShowMap(!showMap)}
-              className="h-10 px-4 rounded-full bg-slate-900/40 backdrop-blur-md flex items-center gap-2 text-white hover:bg-slate-900/60 transition-colors font-medium text-sm"
+              className="h-11 px-4 rounded-full bg-slate-900/40 backdrop-blur-md flex items-center gap-2 text-white hover:bg-slate-900/60 transition-colors font-medium text-sm"
             >
               {showMap ? <><ImageIcon size={16}/> Galereya</> : <><MapIcon size={16}/> Xarita</>}
             </button>
             <button 
               onClick={handleFavoriteClick}
-              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 transition-colors shadow-sm"
+              className="touch-target rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-white/40 transition-colors shadow-sm"
             >
               <Heart size={20} className={isFavorited ? "fill-red-500 text-red-500" : ""} />
             </button>
@@ -306,7 +353,7 @@ export default function RestaurantDetail() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col lg:flex-row gap-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex flex-col lg:flex-row gap-6 sm:gap-8">
         {/* Main Content Area */}
         <div className="flex-1">
           <div className="bg-white dark:bg-[#1e293b] rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-800 mb-8">
@@ -336,12 +383,12 @@ export default function RestaurantDetail() {
               </div>
             </div>
             
-            <button onClick={handleShowRoute} className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3.5 rounded-xl font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm relative overflow-hidden group">
+            <button onClick={handleShowRoute} className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-4 rounded-2xl font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors shadow-sm relative overflow-hidden group">
               <span className="absolute inset-0 w-full h-full bg-white/10 group-hover:scale-105 transition-transform"></span>
               {routeInfo && showMap && userLocation ? (
-                 <span className="flex items-center gap-2"><Navigation size={18} /> {routeInfo.distance} km masofa ({routeInfo.time} min)</span>
+                 <span className="flex items-center gap-2"><Navigation size={18} /> Ichki yo'l ko'rinishi: {routeInfo.distance} km ({routeInfo.time} min)</span>
               ) : (
-                 <span className="flex items-center gap-2"><Navigation size={18} /> Menga yo'lni chizib ko'rsat!</span>
+                 <span className="flex items-center gap-2"><Navigation size={18} /> Ichki yo'lni ko'rsat</span>
               )}
             </button>
           </div>
@@ -401,7 +448,7 @@ export default function RestaurantDetail() {
                       key={star}
                       type="button"
                       onClick={() => setNewReview({ ...newReview, rating: star })}
-                      className="focus:outline-none"
+                      className="touch-target inline-flex items-center justify-center focus:outline-none"
                     >
                       <Star
                         size={24}
@@ -416,11 +463,11 @@ export default function RestaurantDetail() {
                     value={newReview.comment}
                     onChange={(e) => setNewReview({ ...newReview, comment: e.target.value })}
                     placeholder="Restoran haqida nima deb o'ylaysiz?"
-                    className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl outline-none focus:border-primary transition-all resize-none h-24"
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl outline-none focus:border-primary transition-all resize-none h-24"
                   />
                   <button
                     disabled={submittingReview}
-                    className="absolute bottom-3 right-3 p-2 bg-primary text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                    className="absolute bottom-2 right-2 touch-target bg-primary text-white rounded-2xl hover:bg-orange-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center"
                   >
                     {submittingReview ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                   </button>

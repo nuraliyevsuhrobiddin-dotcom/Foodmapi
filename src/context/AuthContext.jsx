@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const API_URL = import.meta.env.VITE_API_URL || '';
 
@@ -9,7 +9,28 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [authLoading, setAuthLoading] = useState(() => !!localStorage.getItem('token'));
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  const refreshNotifications = useCallback(async (currentToken = token) => {
+    if (!currentToken) {
+      setNotifications([]);
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/notifications`, {
+        headers: { Authorization: `Bearer ${currentToken}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications', err);
+    }
+  }, [token]);
 
   const fetchProfile = async (currentToken) => {
     try {
@@ -25,18 +46,112 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to fetch profile', err);
       setToken(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const refreshProfile = async (currentToken = token) => {
+    if (!currentToken) return;
+    await fetchProfile(currentToken);
+  };
+
+  const updateProfile = async (payload) => {
+    if (!token) {
+      return { success: false, message: 'Iltimos tizimga kiring' };
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setUser((prevUser) => ({ ...prevUser, ...data.data }));
+        return { success: true, data: data.data };
+      }
+
+      return { success: false, message: data.message || 'Profilni yangilab bo\'lmadi' };
+    } catch (err) {
+      console.error('Failed to update profile', err);
+      return { success: false, message: 'Serverga ulanib bo\'lmadi' };
+    }
+  };
+
+  const updateCourierAvailability = async (isAvailable) => {
+    if (!token) {
+      return { success: false, message: 'Iltimos tizimga kiring' };
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/availability`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ isAvailable })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setUser((prevUser) => ({ ...prevUser, isAvailable: data.data.isAvailable }));
+        return { success: true, data: data.data };
+      }
+
+      return { success: false, message: data.message || 'Availability yangilanmadi' };
+    } catch (err) {
+      console.error('Failed to update availability', err);
+      return { success: false, message: 'Serverga ulanib bo\'lmadi' };
+    }
+  };
+
+  const updatePassword = async (currentPassword, newPassword) => {
+    if (!token) {
+      return { success: false, message: 'Iltimos tizimga kiring' };
+    }
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        return { success: true, message: data.message };
+      }
+
+      return { success: false, message: data.message || 'Parol yangilanmadi' };
+    } catch (err) {
+      console.error('Failed to update password', err);
+      return { success: false, message: 'Serverga ulanib bo\'lmadi' };
     }
   };
 
   useEffect(() => {
     if (token) {
+      setAuthLoading(true);
       localStorage.setItem('token', token);
       fetchProfile(token);
+      refreshNotifications(token);
     } else {
       localStorage.removeItem('token');
       setUser(null);
+      setNotifications([]);
+      setAuthLoading(false);
     }
-  }, [token]);
+  }, [token, refreshNotifications]);
 
   // Moved up
 
@@ -59,12 +174,12 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const register = async (username, email, password) => {
+  const register = async (username, email, password, phone) => {
     try {
       const res = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password })
+        body: JSON.stringify({ username, email, password, phone })
       });
       const data = await res.json();
       if (res.ok) {
@@ -82,6 +197,50 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
   };
 
+  const markNotificationRead = async (notificationId) => {
+    if (!token) return { success: false };
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/notifications/${notificationId}/read`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications((prev) =>
+          prev.map((notification) =>
+            notification._id === notificationId ? { ...notification, isRead: true } : notification
+          )
+        );
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Failed to mark notification as read', err);
+    }
+
+    return { success: false };
+  };
+
+  const markAllNotificationsRead = async () => {
+    if (!token) return { success: false };
+
+    try {
+      const res = await fetch(`${API_URL}/api/users/notifications/read-all`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotifications((prev) => prev.map((notification) => ({ ...notification, isRead: true })));
+        return { success: true };
+      }
+    } catch (err) {
+      console.error('Failed to mark all notifications as read', err);
+    }
+
+    return { success: false };
+  };
+
   const toggleFavorite = async (restaurantId) => {
     if (!token) return { success: false, message: 'Iltimos tizimga kiring' };
     try {
@@ -96,14 +255,19 @@ export const AuthProvider = ({ children }) => {
         return { success: true, isFavorited: data.data.some(f => f._id === restaurantId || f === restaurantId) };
       }
       return { success: false };
-    } catch (err) {
+    } catch {
       return { success: false };
     }
   };
 
+  const unreadNotificationsCount = notifications.filter((notification) => !notification.isRead).length;
+
   return (
     <AuthContext.Provider value={{
-      user, token, login, register, logout, toggleFavorite,
+      user, token, authLoading, login, register, logout, toggleFavorite,
+      refreshProfile, updateProfile, updateCourierAvailability, updatePassword,
+      notifications, unreadNotificationsCount, refreshNotifications,
+      markNotificationRead, markAllNotificationsRead,
       isAuthModalOpen, setIsAuthModalOpen
     }}>
       {children}

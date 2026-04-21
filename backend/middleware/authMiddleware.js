@@ -30,13 +30,19 @@ const protect = async (req, res, next) => {
   }
 };
 
-// Faqat admin ruxsati uchun middleware
-const admin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ message: 'Ruxsat etilmagan admin huquqi' });
+const authorize = (...roles) => (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({ message: 'Avtorizatsiyadan o\'tilmadi' });
   }
+
+  if (roles.includes(req.user.role)) {
+    return next();
+  }
+
+  return res.status(403).json({ message: 'Ruxsat etilmagan amal' });
 };
 
-module.exports = { protect, admin };
+// Legacy alias to avoid touching every existing admin-only route at once.
+const admin = authorize('admin');
+
+module.exports = { protect, admin, authorize };
