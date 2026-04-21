@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Bell, LogOut, MapPin, Menu, Moon, Settings, ShoppingBag, Sun, User, Utensils } from 'lucide-react';
+import { LogOut, MapPin, Menu, Moon, Settings, Sun, User, Utensils } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
 import useOverlay from '../hooks/useOverlay';
 import { OVERLAYS } from '../constants/overlay';
 import MobileDrawer from './navbar/MobileDrawer';
@@ -21,8 +20,7 @@ const roleDashboardPaths = {
 };
 
 export default function Navbar({ darkMode, toggleTheme }) {
-  const { user, logout, unreadNotificationsCount } = useAuth();
-  const { cartItems, setIsCartOpen } = useCart();
+  const { user, logout } = useAuth();
   const drawerOverlay = useOverlay(OVERLAYS.DRAWER);
   const authOverlay = useOverlay(OVERLAYS.AUTH);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -131,19 +129,6 @@ export default function Navbar({ darkMode, toggleTheme }) {
               <Link to="/profile" className={`${iconButtonClass} relative`} title="Profil" aria-label="Profil">
                 <User className="h-5 w-5" />
               </Link>
-              <Link
-                to="/profile"
-                className={`${iconButtonClass} relative hidden sm:inline-flex`}
-                title="Bildirishnomalar"
-                aria-label="Bildirishnomalar"
-              >
-                <Bell className="h-5 w-5" />
-                {unreadNotificationsCount > 0 && (
-                  <span className="absolute right-0 top-0 flex min-w-[18px] -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-[#ffcc33] px-1 text-[10px] font-bold text-slate-950">
-                    {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
-                  </span>
-                )}
-              </Link>
               {['admin', 'restaurant', 'courier'].includes(user.role) && (
                 <Link to={dashboardPath} className={`${iconButtonClass} hidden sm:inline-flex`} title={roleTitles[user.role] || 'Panel'}>
                   <Settings className="h-5 w-5" />
@@ -151,15 +136,6 @@ export default function Navbar({ darkMode, toggleTheme }) {
               )}
             </>
           )}
-
-          <button onClick={() => setIsCartOpen(true)} className={`${iconButtonClass} relative hidden md:inline-flex`} aria-label="Savatcha">
-            <ShoppingBag className="h-5 w-5" />
-            {cartItems.length > 0 && (
-              <span className="absolute right-0 top-0 flex min-w-[18px] -translate-y-1/3 translate-x-1/3 items-center justify-center rounded-full bg-[#ffcc33] px-1 text-[10px] font-bold text-slate-950">
-                {cartItems.length}
-              </span>
-            )}
-          </button>
 
           <button
             onClick={drawerOverlay.open}
@@ -244,13 +220,7 @@ export default function Navbar({ darkMode, toggleTheme }) {
         onLogin={authOverlay.open}
         darkMode={darkMode}
         onToggleTheme={toggleTheme}
-        onOpenCart={() => {
-          closeMobileMenu();
-          setIsCartOpen(true);
-        }}
-        cartCount={cartItems.length}
         onLogout={logout}
-        unreadNotificationsCount={unreadNotificationsCount}
         dashboardPath={['admin', 'restaurant', 'courier'].includes(user?.role) ? dashboardPath : ''}
         dashboardTitle={roleTitles[user?.role] || 'Panel'}
         isActivePath={isActivePath}

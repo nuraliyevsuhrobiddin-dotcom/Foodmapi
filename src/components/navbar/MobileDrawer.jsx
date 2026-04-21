@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Bell, LogOut, MapPin, Moon, Settings, ShoppingBag, Sun, User, Utensils, X } from 'lucide-react';
+import { LogOut, MapPin, Moon, Settings, Sun, User, Utensils, X } from 'lucide-react';
 import UserProfile from './UserProfile';
 
 export default function MobileDrawer({
@@ -10,10 +10,7 @@ export default function MobileDrawer({
   onLogin,
   darkMode,
   onToggleTheme,
-  onOpenCart,
-  cartCount = 0,
   onLogout,
-  unreadNotificationsCount,
   dashboardPath,
   dashboardTitle,
   isActivePath,
@@ -70,10 +67,6 @@ export default function MobileDrawer({
                 <Utensils size={18} />
                 Restoranlar
               </Link>
-              <button type="button" onClick={onOpenCart} className={`${itemClass(false)} w-full`}>
-                <ShoppingBag size={18} />
-                Savatcha {cartCount > 0 ? `(${cartCount})` : ''}
-              </button>
               <button type="button" onClick={onToggleTheme} className={`${itemClass(false)} w-full`}>
                 {darkMode ? <Sun size={18} /> : <Moon size={18} />}
                 {darkMode ? "Yorug' rejim" : 'Tungi rejim'}
@@ -84,10 +77,6 @@ export default function MobileDrawer({
                   <Link onClick={onClose} to="/profile" className={itemClass(isActivePath('/profile'))}>
                     <User size={18} />
                     Profil
-                  </Link>
-                  <Link onClick={onClose} to="/profile" className={itemClass(isActivePath('/profile'))}>
-                    <Bell size={18} />
-                    Bildirishnomalar {unreadNotificationsCount > 0 ? `(${unreadNotificationsCount})` : ''}
                   </Link>
                   {dashboardPath ? (
                     <Link onClick={onClose} to={dashboardPath} className={itemClass(isActivePath(dashboardPath))}>

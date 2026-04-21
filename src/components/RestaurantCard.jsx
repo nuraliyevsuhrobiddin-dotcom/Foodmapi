@@ -21,6 +21,7 @@ export default function RestaurantCard({ restaurant, compact = false }) {
   const handleFavoriteClick = async (event) => {
     event.preventDefault();
     event.stopPropagation();
+
     if (!user) {
       setIsAuthModalOpen(true);
       return;
@@ -29,7 +30,16 @@ export default function RestaurantCard({ restaurant, compact = false }) {
     const result = await toggleFavorite(restaurantId);
     if (result.success && result.isFavorited) {
       focusRestaurant(restaurantData);
-      toast.success("Sevimlilarga qo'shildi ❤️", {
+      toast.success("Sevimlilarga qo'shildi", {
+        style: {
+          borderRadius: '16px',
+          background: 'rgba(15, 23, 42, 0.92)',
+          color: '#fff',
+        },
+      });
+    } else if (result.success) {
+      toast("Sevimlilardan olib tashlandi", {
+        icon: '💔',
         style: {
           borderRadius: '16px',
           background: 'rgba(15, 23, 42, 0.92)',

@@ -282,9 +282,12 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok) {
-        // Update local user state
-        setUser({ ...user, favorites: data.data });
-        return { success: true, isFavorited: data.data.some(f => f._id === restaurantId || f === restaurantId) };
+        const nextFavorites = Array.isArray(data.data) ? data.data : [];
+        setUser((prevUser) => (prevUser ? { ...prevUser, favorites: nextFavorites } : prevUser));
+        return {
+          success: true,
+          isFavorited: nextFavorites.some((favorite) => favorite?._id === restaurantId || favorite === restaurantId),
+        };
       }
       return { success: false };
     } catch {
